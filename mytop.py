@@ -20,7 +20,7 @@
 #
 # Things to do
 #
-# add a kill features
+# add kill feature in paused mode
 # add explain feature for sql query
 # add filter function
 # add more resizing capabilities
@@ -32,7 +32,8 @@
 # add a background thread for mysql processing and query
 # mysql serveur aggregation
 
-import os, sys
+import os
+import sys
 import time
 import curses
 import signal
@@ -187,7 +188,14 @@ def getStats(scr, user, db=None):
             scr.nodelay(0)
             curses.echo()
             scr.refresh()
-            delay = int(scr.getstr())
+            try:
+                delay = int(scr.getstr())
+            except:
+                scr.move(3,0)
+                scr.clrtoeol()
+                scr.addstr(3, 0, 'Bad delay value')
+                scr.refresh()
+                time.sleep(1)
             delay_counter = delay
             curses.noecho()
             scr.nodelay(1)
@@ -195,8 +203,25 @@ def getStats(scr, user, db=None):
             scr.erase()
         elif key == ord("k"):
             scr.addstr(3, 0, 'Specify the id process to kill : ')
+            scr.move(3, 33)
+            scr.nodelay(0)
+            curses.echo()
+            scr.refresh()
+            pids = scr.getstr().split()
+            for pid in pids:
+                try:
+                    sql.execute('kill ' + pid)
+                except MySQLdb.OperationalError as e:
+                    scr.move(3,0)
+                    scr.clrtoeol()
+                    scr.addstr(3, 0, '%s' % (e))
+                    scr.refresh()
+                    time.sleep(1)
+            curses.noecho()
+            scr.nodelay(1)
+            scr.refresh()
         elif key == ord("f"):
-            scr.addstr(3, 0, 'Specify the id process to kill : ')
+            scr.addstr(3, 0, 'filter : ')
         elif key == ord("p"):
             if paused:
                 paused = False
