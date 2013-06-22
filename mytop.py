@@ -31,6 +31,7 @@
 # add write to file capabilties
 # add a background thread for mysql processing and query
 # mysql serveur aggregation
+# add history mode
 
 import os
 import sys
@@ -40,6 +41,7 @@ import signal
 import getopt
 import datetime
 import getpass
+import re
 
 # 3rd Party imports
 import MySQLdb
@@ -148,15 +150,15 @@ def display_process(scr, process=None, highlight=None):
      for p in process[:(maxY-6)]:
          if highlight is not None:
              if highlight == (cnt - 5):
-                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p[0], p[1][:10], p[2].split(':')[0][:15], p[3][:20], p[4], p[5], p[6]), curses.A_REVERSE)
+                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p[0], p[1][:10], p[2].split(':')[0][:15], p[3][:20], p[4], p[5], p[6][:44]), curses.A_REVERSE)
              else:
-                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p[0], p[1][:10], p[2].split(':')[0][:15], p[3][:20], p[4], p[5], p[6]))
+                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p[0], p[1][:10], p[2].split(':')[0][:15], p[3][:20], p[4], p[5], p[6][:44]))
          else:
-             scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p[0], p[1][:10], p[2].split(':')[0][:15], p[3][:20], p[4], p[5], p[6]))
+             scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p[0], p[1][:10], p[2].split(':')[0][:15], p[3][:20], p[4], p[5], p[6][:44]))
          cnt += 1
 #         scr.addstr(cnt, 0, ' '*(maxX-1))
 
-def getStats(scr, user, db=None):
+def main(scr, user, db=None):
     (maxY, maxX) = scr.getmaxyx()
     curses.use_default_colors()
     scr.nodelay(1)
@@ -170,6 +172,7 @@ def getStats(scr, user, db=None):
     cursor_pos = 0
     cursor_max_pos = 0
     info = {}
+    history = []
     while 1:
         key = scr.getch()
         if key == ord("q"):
@@ -182,6 +185,14 @@ def getStats(scr, user, db=None):
             scr.refresh()
             scr.getch()
             scr.nodelay(1)
+        if key == curses.KEY_LEFT:
+            scr.addstr(3, 0, 'History', curses.A_BLINK)
+            display_process(scr, process)
+            display_footer(scr, " left right  [q]uit")
+            scr.refresh()
+            paused = True
+            scr.nodelay(0)
+            curses.curs_set(0)
         elif key == ord("d"):
             scr.addstr(3, 0, 'Specify delay in second : ')
             scr.move(3, 26)
@@ -220,6 +231,31 @@ def getStats(scr, user, db=None):
             curses.noecho()
             scr.nodelay(1)
             scr.refresh()
+
+        elif key == ord("w"):
+            scr.addstr(3, 0, 'Write to : ')
+            scr.move(3, 11)
+            scr.nodelay(0)
+            curses.echo()
+            scr.refresh()
+            path = scr.getstr()
+            try :
+                f = open(path, "w")
+                for p in process:
+                    line = ""
+                    for i in p:
+                        line = line + ";" + str(i)
+                    f.write(line + "\n")
+                f.close()
+            except:
+                scr.move(3,0)
+                scr.clrtoeol()
+                scr.addstr(3, 0, 'Impossible to write file')
+                scr.refresh()
+                time.sleep(1)
+            curses.noecho()
+            scr.nodelay(1)
+            scr.refresh()
         elif key == ord("f"):
             scr.addstr(3, 0, 'filter : ')
         elif key == ord("p"):
@@ -253,6 +289,7 @@ def getStats(scr, user, db=None):
                         display_header(scr, info)
                         display_process(scr, process, cursor_pos)
                         display_footer(scr, " [u]p  [d]own  [i]nfo  [q]uit")
+                        scr.addstr(3, 0, 'Pause', curses.A_BLINK)
                     elif key == ord("q"):
                         paused = False
                         scr.nodelay(1)
@@ -270,7 +307,7 @@ def getStats(scr, user, db=None):
                 info["user"] = user
                 sql.execute('show status where Variable_name="Uptime"')
                 info["uptime"] = str(datetime.timedelta(seconds = int(sql.fetchone()[1])))
-                sql.execute('SHOW PROCESSLIST;')
+                sql.execute('SHOW FULL PROCESSLIST;')
                 display_header(scr, info)
                 process = []
                 try:
@@ -301,9 +338,9 @@ def getStats(scr, user, db=None):
 
                         p = [row[0], row[1], row[2].split(':')[0], dbName, state, row[5], query]
                         process.append(p)
-
+                    history.append(process)
                     display_process(scr, process)
-                    display_footer(scr, " [d]elay  [f]ilter  [H]ighlight  [k]ill  [h]elp  [q]uit")
+                    display_footer(scr, " [d]elay  [f]ilter  [H]ighlight  [k]ill  [w]rite  [h]elp  [q]uit")
                 except curses.error: pass
                 except IOError: pass
                 scr.move(3, 0)
@@ -325,6 +362,6 @@ if __name__ == '__main__':
         print e[1]
         sys.exit(1)
     else:
-        curses.wrapper(getStats, options["user"], db)
+        curses.wrapper(main, options["user"], db)
 
 
