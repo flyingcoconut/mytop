@@ -30,7 +30,7 @@
 # add a better scrolling during pause for process
 # add write to file capabilties
 # add a background thread for mysql processing and query
-# mysql serveur aggregation
+# db serveur aggregation
 # add history mode
 
 import os
@@ -44,8 +44,18 @@ import getpass
 import re
 
 # 3rd Party imports
-import MySQLdb
 
+try: #Try to import MySQLdb library
+    import MySQLdb
+except ImportError:
+    print "MySQL library is missing"
+    sys.exit(1)
+
+try: #try to import mytop
+    import mytop
+except ImportError:
+    print "mytop library is missing"
+    sys.exit(1)
 
 def signal_handler(signal, frame):
         sys.exit(1)
@@ -111,6 +121,9 @@ def arg_parser():
     return options
 
 def display_details(scr, process):
+    """
+    Display all info about a process
+    """
     (maxY, maxX) = scr.getmaxyx()
     scr.erase()
     scr.addstr(0, 0, "Process infos")
@@ -133,18 +146,28 @@ def display_details(scr, process):
     scr.getch()
 
 def display_header(scr, info):
+    """
+    Display header info
+
+    """
     (maxY, maxX) = scr.getmaxyx()
     scr.addstr(0, 0, time.ctime())
     scr.addstr(1, 0, 'User : %s, Uptime : %s' % (info["user"][:10], info["uptime"]))
     scr.addstr(2, 0, 'Version : %s' % (info["version"]))
     scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(maxX-60)), curses.A_BOLD|curses.A_REVERSE)
 
-def display_footer(scr, text): 
+def display_footer(scr, text):
+    """
+    Display footer mainly for action choice from user
+    """ 
     (maxY, maxX) = scr.getmaxyx()
     text = text.ljust(maxX-1)
     scr.addstr(maxY-1, 0, '%s' % (text), curses.A_BOLD | curses.A_REVERSE)
 
 def display_process(scr, process=None, highlight=None):
+     """
+     Display process
+     """
      (maxY, maxX) = scr.getmaxyx()
      cnt = 5
      for p in process[:(maxY-6)]:
@@ -159,6 +182,9 @@ def display_process(scr, process=None, highlight=None):
 #         scr.addstr(cnt, 0, ' '*(maxX-1))
 
 def main(scr, user, db=None):
+    """
+    This is the main function
+    """
     (maxY, maxX) = scr.getmaxyx()
     curses.use_default_colors()
     scr.nodelay(1)
@@ -173,6 +199,7 @@ def main(scr, user, db=None):
     cursor_max_pos = 0
     info = {}
     history = []
+    max_history = 5
     while 1:
         key = scr.getch()
         if key == ord("q"):
@@ -187,10 +214,9 @@ def main(scr, user, db=None):
             scr.nodelay(1)
         if key == curses.KEY_LEFT:
             scr.addstr(3, 0, 'History', curses.A_BLINK)
-            display_process(scr, process)
+            display_process(scr, history[len(history) - 1])
             display_footer(scr, " left right  [q]uit")
             scr.refresh()
-            paused = True
             scr.nodelay(0)
             curses.curs_set(0)
         elif key == ord("d"):
@@ -239,12 +265,21 @@ def main(scr, user, db=None):
             curses.echo()
             scr.refresh()
             path = scr.getstr()
+            if os.path.exists(path) & os.path.isfile(path):
+                scr.move(3,0)
+                scr.clrtoeol()
+                scr.addstr(3, 0, 'File exist. Do you want to overwrite ? [y/N]')
+                scr.refresh()
             try :
                 f = open(path, "w")
+                f.write("Id;User;Host;Db;State;Time;Info\n")
                 for p in process:
-                    line = ""
+                    line = None
                     for i in p:
-                        line = line + ";" + str(i)
+                        if line is None:
+                            line = str(i)
+                        else:
+                            line = line + ";" + str(i)
                     f.write(line + "\n")
                 f.close()
             except:
@@ -333,9 +368,6 @@ def main(scr, user, db=None):
                             query = "None"
                         else:
                             query = row[7]
-
-                        #query = query.rstrip("\n")
-
                         p = [row[0], row[1], row[2].split(':')[0], dbName, state, row[5], query]
                         process.append(p)
                     history.append(process)
@@ -344,7 +376,6 @@ def main(scr, user, db=None):
                 except curses.error: pass
                 except IOError: pass
                 scr.move(3, 0)
-                #scr.refresh()
             except KeyboardInterrupt:
                 sys.exit(-1)
         else:
@@ -354,14 +385,18 @@ def main(scr, user, db=None):
 
 
 if __name__ == '__main__':
+    #Initialise signal to catch SIGINT
     signal.signal(signal.SIGINT, signal_handler)
+    #Call the parser function
     options = arg_parser()
+    #Try to connect to the MySQL server
     try:
         db = MySQLdb.connect(host=options["host"], user=options["user"], passwd=options["password"], port=options["port"])
     except MySQLdb.OperationalError as e:
         print e[1]
         sys.exit(1)
     else:
+        #Curses wrapper around the main function
         curses.wrapper(main, options["user"], db)
 
 
