@@ -57,6 +57,8 @@ except ImportError:
     print "mytop library is missing"
     sys.exit(1)
 
+VERSION = "0.0.1"
+
 def signal_handler(signal, frame):
         sys.exit(1)
 
@@ -105,7 +107,7 @@ def arg_parser():
         elif o in ("-u", "--user"):
             options["user"] = a
         elif o in ("-V", "--version"):
-            print "Version"
+            print "Version %s" % VERSION
             sys.exit(0)
         elif o == "--help":
             show_usage()

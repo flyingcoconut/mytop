@@ -16,36 +16,62 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import getopt
 
-class processManager():
+import MySQLdb
+
+class processManager(object):
     MYSQL_BACKEND = "mysql"
     PGSQL_BACKEND = "pgsql"
-    def __init__(self, backend, db):
+    def __init__(self, backend, user="root", host="localhost", password=None, port=3306):
         self.backend = backend
-        self.max_history
+        self.user = user
+        self.host = host
+        self.password = password
+        self.port = port
         self.history = []
         self.max_history = 5
-        self.info["version"] = "Unknown"
-        self.info["user"] = "Unknow"
-        self.info["uptime"] = 0
+        self.version = "Unknown"
+        self._uptime = 0
+        self._process = []
         if backend == "mysql":
-            self.sql = db.cursor()
+            try:
+                db = MySQLdb.connect(host=self.host, user=self.user, passwd=self.password, port=self.port)
+            except MySQLdb.OperationalError as e:
+                print e[1]
+            else:
+                #Create mysql object
+                self.sql = db.cursor()
+
+    @property
+    def process(self):
+        if self.backend == "mysql":
+            self._process_mysql()
+            return self._process
+
+    @property
+    def uptime(self):
+        return 
         
     def get_process(self):
         if self.backend == "mysql":
             self._process_mysql()
             return self.process
-    def get_info():
+
+    def get_info(self):
         if self.backend == "mysql":
             self._info_mysql()
             return self.info
+
     def kill(self, pid):
         if self.backend == "mysql":
             self._kill_mysql(self, pid)
+
     def _process_mysql(self):
         self.sql.execute('SHOW FULL PROCESSLIST;')
+        process = []
         try:
-            for row in sql.fetchall():
+            for row in self.sql.fetchall():
                 if len(str(row[5])) > 8 :
                     row[5] = "-"
                 if row[3] is None:
@@ -67,9 +93,9 @@ class processManager():
                 else:
                     query = row[7]
                 p = [row[0], row[1], row[2].split(':')[0], dbName, state, row[5], query]
-                self.process = []
-                self.process.append(p)
-                self.history.append(p)
+                process.append(p)
+            self._process = process
+            self.history.append(p)
         except:
             pass
 
@@ -83,7 +109,63 @@ class processManager():
         self.sql.execute('kill ' + pid)
         #except MySQLdb.OperationalError as e:
 
-class processCluster():
+class processAgregator(object):
     def __init__(self):
         print "todo"
 
+class config(object):
+    """
+    A class to read and write mytop config
+    """
+    def __init__(self, path):
+        self.path = path
+
+    def write(self):
+        print "todo"
+
+    def parse(self):
+        f = open(self.path)
+        for l in f.readlines():
+            print l
+
+class argsParser(object):
+    """
+    A class to pass command line arguments
+    """
+    def __init__(self):
+        print "todo"
+        self.host = "localhost"
+        self.password = None
+        self.port = 3306
+        self.user = "root"
+
+    def parse(self, args):
+        try:
+            opts, args = getopt.getopt(sys.argv[1:], "h:p:P:u:V", ["host=", "password=", "port=", "user=", "version", "help"])
+        except getopt.GetoptError, err:
+            # print help information and exit:
+            show_usage()
+            print str(err) # will print something like "option -a not recognized"
+            sys.exit(1)
+        for o, a in opts:
+            if o in ("-h", "--host"):
+                options["host"] = a
+            elif o in ("-p", "--password"):
+                options["password"] = a
+            elif o in ("-P", "--port"):
+                options["port"] = int(a)
+            elif o in ("-u", "--user"):
+                options["user"] = a
+            elif o in ("-V", "--version"):
+                print "Version %s" % VERSION
+                sys.exit(0)
+            elif o == "--help":
+                show_usage()
+                show_help()
+                sys.exit(0)
+            else:
+                show_usage()
+                sys.exit(1)
+
+        if options["password"] is None:
+            options["password"] = getpass.getpass()
