@@ -17,61 +17,168 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import getopt
+import datetime
 
 import MySQLdb
+
+class process(object):
+    def __init__(self, pid=0, user=None, host=None, db=None, state=None, time=0, info=None):
+        self._pid = pid
+        self._user = user
+        self._host = host
+        self._db = db
+        self._state = state
+        self._time = time
+        self._info = info
+
+    @property
+    def pid(self):
+        return self._pid
+    @pid.setter
+    def pid(self, value):
+        self._pid = value
+
+    @property
+    def user(self):
+        return self._user
+    @user.setter
+    def user(self, value):
+        self._user = value
+
+    @property
+    def host(self):
+        return self._host
+    @host.setter
+    def host(self, value):
+        self._host = value
+
+    @property
+    def db(self):
+        return self._db
+    @db.setter
+    def db(self, value):
+        self._db = value
+
+    @property
+    def state(self):
+        return self._state
+    @state.setter
+    def state(self, value):
+        self._state = value
+
+    @property
+    def time(self):
+        return self._time
+    @time.setter
+    def time(self, value):
+        self._time = value
+
+    @property
+    def info(self):
+        return self._info
+    @info.setter
+    def info(self, value):
+        self._info = value
 
 class processManager(object):
     MYSQL_BACKEND = "mysql"
     PGSQL_BACKEND = "pgsql"
-    def __init__(self, backend, user="root", host="localhost", password=None, port=3306):
-        self.backend = backend
-        self.user = user
-        self.host = host
-        self.password = password
-        self.port = port
-        self.history = []
-        self.max_history = 5
-        self.version = "Unknown"
+    def __init__(self, backend=None, user="root", host="localhost", password=None, port=3306):
+        self._backend = backend
+        self._user = user
+        self._host = host
+        self._password = password
+        self._port = port
+        self._history = []
+        self._max_history = 5
+        self._version = "Unknown"
         self._uptime = 0
         self._process = []
-        if backend == "mysql":
+        self._sql = None
+        
+    @property
+    def user(self):
+        return self._user
+    @user.setter
+    def user(self, value):
+        self._user = value
+
+    @property
+    def password(self):
+        return self._password
+
+    @password.setter
+    def password(self, value):
+        self._password = value
+
+    @property
+    def host(self):
+        return self._host
+
+    @host.setter
+    def host(self, value):
+        self._host = value
+
+    @property
+    def port(self):
+        return self._port
+
+    @port.setter
+    def port(self, value):
+        self._port = value
+
+    @property
+    def max_history(self):
+        return self._max_history
+
+    @max_history.setter
+    def max_history(self, value):
+        self._max_history = value
+
+    @property
+    def process(self):
+        if self._backend == "mysql":
+            return self._process
+
+    @property
+    def version(self):
+        if self._backend == "mysql":
+            self._version_mysql()
+            return self._version
+
+    @property
+    def uptime(self):
+        if self._backend == "mysql":
+            self._uptime_mysql()
+            return self._uptime
+    
+    def refresh(self):
+        if self._backend == "mysql":
+            self._process_mysql()
+
+    def connect(self):
+        if self._backend == "mysql":
             try:
-                db = MySQLdb.connect(host=self.host, user=self.user, passwd=self.password, port=self.port)
+                db = MySQLdb.connect(host=self._host, user=self._user, passwd=self._password, port=self._port)
             except MySQLdb.OperationalError as e:
                 print e[1]
             else:
                 #Create mysql object
-                self.sql = db.cursor()
+                self._sql = db.cursor()
 
-    @property
-    def process(self):
-        if self.backend == "mysql":
-            self._process_mysql()
-            return self._process
-
-    @property
-    def uptime(self):
-        return 
-        
-    def get_process(self):
-        if self.backend == "mysql":
-            self._process_mysql()
-            return self.process
-
-    def get_info(self):
-        if self.backend == "mysql":
-            self._info_mysql()
-            return self.info
+    def close(self):
+        self._sql.close()
+        self._sql = None
 
     def kill(self, pid):
-        if self.backend == "mysql":
+        if self._backend == "mysql":
             self._kill_mysql(self, pid)
 
     def _process_mysql(self):
-        self.sql.execute('SHOW FULL PROCESSLIST;')
-        process = []
+        self._sql.execute('SHOW FULL PROCESSLIST;')
+        all_process = []
         try:
-            for row in self.sql.fetchall():
+            for row in self._sql.fetchall():
                 if len(str(row[5])) > 8 :
                     row[5] = "-"
                 if row[3] is None:
@@ -92,26 +199,56 @@ class processManager(object):
                     query = "None"
                 else:
                     query = row[7]
-                p = [row[0], row[1], row[2].split(':')[0], dbName, state, row[5], query]
-                process.append(p)
-            self._process = process
-            self.history.append(p)
+                p = process(row[0], row[1], row[2].split(':')[0], dbName, state, row[5], query)
+                all_process.append(p)
+            self._process = all_process
+            self._history.append(p)
         except:
             pass
 
-    def _info_mysql(self):
-        self.sql.execute('select VERSION();')
-        self.info["version"] = sql.fetchone()[0]
-        self.info["user"] = user
-        self.sql.execute('show status where Variable_name="Uptime"')
-        self.info["uptime"] = str(datetime.timedelta(seconds = int(sql.fetchone()[1])))
+    def _version_mysql(self):
+        self._sql.execute('select VERSION();')
+        self._version = self._sql.fetchone()[0]
+
+    def _uptime_mysql(self):
+        self._sql.execute('show status where Variable_name="Uptime"')
+        self._uptime = str(datetime.timedelta(seconds = int(self._sql.fetchone()[1])))
+
     def _kill_mysql(self, pid):
-        self.sql.execute('kill ' + pid)
-        #except MySQLdb.OperationalError as e:
+        self._sql.execute('kill ' + pid)
 
 class processAgregator(object):
     def __init__(self):
+        self._db = []
+
+
+    def append(self, db):
+        self._db.append(db)
+    
+    def connect(self):
+        for db in self._db:
+            db.connect()
+
+    def refresh(self):
+        for db in self._db:
+            db.refresh()
+
+    def close(self):
+        for db in self._db:
+            db.close()
+
+    def kill(self, process):
         print "todo"
+
+    @property
+    def process(self):
+        tmp_process = []
+        for db in self._db:
+            for p in db.process:
+                tmp_process.append(p)
+        return tmp_process
+
+
 
 class config(object):
     """
