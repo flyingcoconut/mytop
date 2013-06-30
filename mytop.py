@@ -23,12 +23,10 @@
 # add kill feature in paused mode
 # add explain feature for sql query
 # add filter function
-# add more resizing capabilities
 # add highlight capabilities with colors
 # add a preference (config file) eg. .mytop.conf in home
 # add a better help
 # add a better scrolling during pause for process
-# add write to file capabilties
 # add a background thread for mysql processing and query
 # db serveur aggregation
 # add history mode
@@ -43,13 +41,6 @@ import datetime
 import getpass
 import re
 
-# 3rd Party imports
-
-try: #Try to import MySQLdb library
-    import MySQLdb
-except ImportError:
-    print "MySQL library is missing"
-    sys.exit(1)
 
 try: #try to import mytop
     import mytop
@@ -57,7 +48,7 @@ except ImportError:
     print "mytop library is missing"
     sys.exit(1)
 
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 
 def signal_handler(signal, frame):
         sys.exit(1)
@@ -122,6 +113,10 @@ def arg_parser():
 
     return options
 
+def write_to_file(scr, pm):
+    print "todo"
+
+
 def display_details(scr, process):
     """
     Display all info about a process
@@ -130,32 +125,32 @@ def display_details(scr, process):
     scr.erase()
     scr.addstr(0, 0, "Process infos")
     scr.addstr(2, 1, "Id", curses.A_BOLD)
-    scr.addstr(3, 1, str(process[0]))
+    scr.addstr(3, 1, str(process.pid))
     scr.addstr(5, 1, "User", curses.A_BOLD)
-    scr.addstr(6, 1, process[1])
+    scr.addstr(6, 1, process.user)
     scr.addstr(8, 1, "Host", curses.A_BOLD)
-    scr.addstr(9, 1, process[2])
+    scr.addstr(9, 1, process.host)
     scr.addstr(11, 1, "Database", curses.A_BOLD)
-    scr.addstr(12, 1, process[3])
+    scr.addstr(12, 1, process.db)
     scr.addstr(14, 1, "State", curses.A_BOLD)
-    scr.addstr(15, 1, process[4])
+    scr.addstr(15, 1, process.state)
     scr.addstr(17, 1, "Time", curses.A_BOLD)
-    scr.addstr(18, 1, str(datetime.timedelta(seconds=process[5])))
+    scr.addstr(18, 1, str(datetime.timedelta(seconds=process.time)))
     scr.addstr(20, 1, "Info", curses.A_BOLD)
-    scr.addstr(21, 1, process[6])
+    scr.addstr(21, 1, process.info)
     scr.addstr(maxY-1, 0, "Press any key to quit")
     scr.refresh()
     scr.getch()
 
-def display_header(scr, info):
+def display_header(scr, pm):
     """
     Display header info
 
     """
     (maxY, maxX) = scr.getmaxyx()
     scr.addstr(0, 0, time.ctime())
-    scr.addstr(1, 0, 'User : %s, Uptime : %s' % (info["user"][:10], info["uptime"]))
-    scr.addstr(2, 0, 'Version : %s' % (info["version"]))
+    scr.addstr(1, 0, 'User : %s, Uptime : %s' % (pm.user[:10], pm.uptime))
+    scr.addstr(2, 0, 'Version : %s' % (pm.version))
     scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(maxX-60)), curses.A_BOLD|curses.A_REVERSE)
 
 def display_footer(scr, text):
@@ -166,20 +161,20 @@ def display_footer(scr, text):
     text = text.ljust(maxX-1)
     scr.addstr(maxY-1, 0, '%s' % (text), curses.A_BOLD | curses.A_REVERSE)
 
-def display_process(scr, process=None, highlight=None):
+def display_process(scr, pm=None, highlight=None):
      """
      Display process
      """
      (maxY, maxX) = scr.getmaxyx()
      cnt = 5
-     for p in process[:(maxY-6)]:
+     for p in pm.process[:(maxY-6)]:
          if highlight is not None:
              if highlight == (cnt - 5):
-                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p[0], p[1][:10], p[2].split(':')[0][:15], p[3][:20], p[4], p[5], p[6][:44]), curses.A_REVERSE)
+                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]), curses.A_REVERSE)
              else:
-                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p[0], p[1][:10], p[2].split(':')[0][:15], p[3][:20], p[4], p[5], p[6][:44]))
+                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]))
          else:
-             scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p[0], p[1][:10], p[2].split(':')[0][:15], p[3][:20], p[4], p[5], p[6][:44]))
+             scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]))
          cnt += 1
 #         scr.addstr(cnt, 0, ' '*(maxX-1))
 
@@ -191,8 +186,7 @@ def main(scr, user, db=None):
     curses.use_default_colors()
     scr.nodelay(1)
     scr.keypad(1)
-    sql = db.cursor()
-    fp = open('debug', 'w+')
+    #fp = open('debug', 'w+')
     maxInfo = (maxX-75)
     delay_counter = 1
     delay = 1
@@ -249,7 +243,7 @@ def main(scr, user, db=None):
             pids = scr.getstr().split()
             for pid in pids:
                 try:
-                    sql.execute('kill ' + pid)
+                    db.kill(pid)
                 except MySQLdb.OperationalError as e:
                     scr.move(3,0)
                     scr.clrtoeol()
@@ -270,26 +264,24 @@ def main(scr, user, db=None):
             if os.path.exists(path) & os.path.isfile(path):
                 scr.move(3,0)
                 scr.clrtoeol()
+                curses.noecho()
                 scr.addstr(3, 0, 'File exist. Do you want to overwrite ? [y/N]')
-                scr.refresh()
-            try :
-                f = open(path, "w")
-                f.write("Id;User;Host;Db;State;Time;Info\n")
-                for p in process:
-                    line = None
-                    for i in p:
-                        if line is None:
-                            line = str(i)
-                        else:
-                            line = line + ";" + str(i)
-                    f.write(line + "\n")
-                f.close()
-            except:
-                scr.move(3,0)
-                scr.clrtoeol()
-                scr.addstr(3, 0, 'Impossible to write file')
-                scr.refresh()
-                time.sleep(1)
+                r = scr.getch()
+                if r == ord("y"):
+                    scr.refresh()
+                    try :
+                        f = open(path, "w")
+                        f.write("Id;User;Host;Db;State;Time;Info\n")
+                        for p in db.process:
+                            line = str(p.pid) + ";" + p.user + ";" + p.host + ";" + p.db + ";" + p.state + ";" + str(p.time) + ";" + p.info
+                            f.write(line + "\n")
+                        f.close()
+                    except:
+                        scr.move(3,0)
+                        scr.clrtoeol()
+                        scr.addstr(3, 0, 'Impossible to write file')
+                        scr.refresh()
+                        time.sleep(1)
             curses.noecho()
             scr.nodelay(1)
             scr.refresh()
@@ -302,7 +294,7 @@ def main(scr, user, db=None):
                 scr.erase()
             else:
                 scr.addstr(3, 0, 'Pause', curses.A_BLINK)
-                display_process(scr, process, cursor_pos)
+                display_process(scr, db, cursor_pos)
                 display_footer(scr, " [u]p  [d]own  [i]nfo  [q]uit")
                 scr.refresh()
                 paused = True
@@ -311,20 +303,20 @@ def main(scr, user, db=None):
                 while paused:
                     key = scr.getch()
                     if key == curses.KEY_DOWN:
-                        if cursor_pos < len(process) - 1:
+                        if cursor_pos < len(db.process) - 1:
                             cursor_pos = cursor_pos + 1
-                        display_process(scr, process, cursor_pos)
+                        display_process(scr, db, cursor_pos)
                         scr.refresh()
                     elif key == curses.KEY_UP:
                         if cursor_pos > 0:
                             cursor_pos = cursor_pos - 1
-                        display_process(scr, process, cursor_pos)
+                        display_process(scr, db, cursor_pos)
                         scr.refresh()
                     elif key == ord("i"):
-                        display_details(scr, process[cursor_pos])
+                        display_details(scr, db.process[cursor_pos])
                         scr.erase()
-                        display_header(scr, info)
-                        display_process(scr, process, cursor_pos)
+                        display_header(scr, db)
+                        display_process(scr, db, cursor_pos)
                         display_footer(scr, " [u]p  [d]own  [i]nfo  [q]uit")
                         scr.addstr(3, 0, 'Pause', curses.A_BLINK)
                     elif key == ord("q"):
@@ -335,51 +327,13 @@ def main(scr, user, db=None):
                         scr.refresh()
                           
         if delay_counter  == delay and not paused:
-            delay_counter = 0                   
-                    
-            try:
-                scr.erase()
-                sql.execute('select VERSION();')
-                info["version"] = sql.fetchone()[0]
-                info["user"] = user
-                sql.execute('show status where Variable_name="Uptime"')
-                info["uptime"] = str(datetime.timedelta(seconds = int(sql.fetchone()[1])))
-                sql.execute('SHOW FULL PROCESSLIST;')
-                display_header(scr, info)
-                process = []
-                try:
-                    for row in sql.fetchall():
-                        if len(str(row[5])) > 8 :
-                            row[5] = "-"
-                        if row[3] is None:
-                            dbName = "None"
-                        else:
-                            dbName = row[3]
-
-                        if row[4].lower().strip() == 'query':
-                            state = "Q"
-                        elif row[4].lower().strip() == 'sleep':
-                            state = "S"
-                        elif row[4].lower().strip() == 'connect':
-                            state = "C"
-                        elif row[4].lower().strip() == 'bindlog':
-                            state = "B"
-                        else:
-                            state = "U"
-                        if row[7] is None:
-                            query = "None"
-                        else:
-                            query = row[7]
-                        p = [row[0], row[1], row[2].split(':')[0], dbName, state, row[5], query]
-                        process.append(p)
-                    history.append(process)
-                    display_process(scr, process)
-                    display_footer(scr, " [d]elay  [f]ilter  [H]ighlight  [k]ill  [w]rite  [h]elp  [q]uit")
-                except curses.error: pass
-                except IOError: pass
-                scr.move(3, 0)
-            except KeyboardInterrupt:
-                sys.exit(-1)
+            delay_counter = 0                       
+            pm.refresh()
+            scr.erase()
+            display_header(scr, pm)
+            display_process(scr, pm)
+            display_footer(scr, " [d]elay  [f]ilter  [H]ighlight  [k]ill  [w]rite  [h]elp  [q]uit")
+            scr.move(3, 0)
         else:
             delay_counter = delay_counter + 0.5
             
@@ -392,13 +346,13 @@ if __name__ == '__main__':
     #Call the parser function
     options = arg_parser()
     #Try to connect to the MySQL server
+    pm = mytop.processManager(backend="mysql",host=options["host"], user=options["user"], password=options["password"], port=options["port"])
     try:
-        db = MySQLdb.connect(host=options["host"], user=options["user"], passwd=options["password"], port=options["port"])
-    except MySQLdb.OperationalError as e:
-        print e[1]
+        pm.connect()
+    except mytop.processManagerError as e:
+        print "Impossible to connect to the database"
         sys.exit(1)
-    else:
-        #Curses wrapper around the main function
-        curses.wrapper(main, options["user"], db)
+    #Curses wrapper around the main function
+    curses.wrapper(main, options["user"], pm)
 
 

@@ -19,7 +19,22 @@
 import getopt
 import datetime
 
-import MySQLdb
+try: #Try to import MySQLdb library
+    import MySQLdb
+except ImportError:
+    print "MySQL library is missing"
+
+class processManagerError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+class configError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
 
 class process(object):
     def __init__(self, pid=0, user=None, host=None, db=None, state=None, time=0, info=None):
@@ -79,6 +94,7 @@ class process(object):
     @info.setter
     def info(self, value):
         self._info = value
+
 
 class processManager(object):
     MYSQL_BACKEND = "mysql"
@@ -151,17 +167,20 @@ class processManager(object):
         if self._backend == "mysql":
             self._uptime_mysql()
             return self._uptime
-    
+
     def refresh(self):
         if self._backend == "mysql":
             self._process_mysql()
+
+    def history(self, pos):
+        return self._history[pos]
 
     def connect(self):
         if self._backend == "mysql":
             try:
                 db = MySQLdb.connect(host=self._host, user=self._user, passwd=self._password, port=self._port)
             except MySQLdb.OperationalError as e:
-                print e[1]
+                raise processManagerError("Impossible to connect to the database serveur")
             else:
                 #Create mysql object
                 self._sql = db.cursor()
@@ -172,7 +191,7 @@ class processManager(object):
 
     def kill(self, pid):
         if self._backend == "mysql":
-            self._kill_mysql(self, pid)
+            self._kill_mysql(pid)
 
     def _process_mysql(self):
         self._sql.execute('SHOW FULL PROCESSLIST;')
@@ -202,7 +221,11 @@ class processManager(object):
                 p = process(row[0], row[1], row[2].split(':')[0], dbName, state, row[5], query)
                 all_process.append(p)
             self._process = all_process
-            self._history.append(p)
+            if len(self._history) > self._max_history:
+                self._history.remove(self._max_history)
+                self._history.append(p)
+            else:
+                self._history.append(p)
         except:
             pass
 
@@ -216,6 +239,7 @@ class processManager(object):
 
     def _kill_mysql(self, pid):
         self._sql.execute('kill ' + pid)
+
 
 class processAgregator(object):
     def __init__(self):
@@ -248,61 +272,44 @@ class processAgregator(object):
                 tmp_process.append(p)
         return tmp_process
 
-
-
 class config(object):
     """
-    A class to read and write mytop config
+    A class to read and write config
     """
-    def __init__(self, path):
-        self.path = path
+    def __init__(self, path = None):
+        self._path = path
+        self._options = {}
+        self._comments = {}
+
+    @property
+    def path(self):
+        return self._path
+
+    @path.setter
+    def path(self, value):
+        self._path = value
+
+    def get_option(self, option):
+        try:
+            return self._options[option]
+        except KeyError:
+            return None
+
+    def set_option(self, option, value):
+        self._options[option] = value
 
     def write(self):
         print "todo"
 
     def parse(self):
-        f = open(self.path)
+        self._options = {}
+        f = open(self._path)
         for l in f.readlines():
-            print l
-
-class argsParser(object):
-    """
-    A class to pass command line arguments
-    """
-    def __init__(self):
-        print "todo"
-        self.host = "localhost"
-        self.password = None
-        self.port = 3306
-        self.user = "root"
-
-    def parse(self, args):
-        try:
-            opts, args = getopt.getopt(sys.argv[1:], "h:p:P:u:V", ["host=", "password=", "port=", "user=", "version", "help"])
-        except getopt.GetoptError, err:
-            # print help information and exit:
-            show_usage()
-            print str(err) # will print something like "option -a not recognized"
-            sys.exit(1)
-        for o, a in opts:
-            if o in ("-h", "--host"):
-                options["host"] = a
-            elif o in ("-p", "--password"):
-                options["password"] = a
-            elif o in ("-P", "--port"):
-                options["port"] = int(a)
-            elif o in ("-u", "--user"):
-                options["user"] = a
-            elif o in ("-V", "--version"):
-                print "Version %s" % VERSION
-                sys.exit(0)
-            elif o == "--help":
-                show_usage()
-                show_help()
-                sys.exit(0)
+            line = l.strip()
+            if line[0] == "#":
+                pass
             else:
-                show_usage()
-                sys.exit(1)
+                line = line.split("=")
+                self._options[line[0].strip()] = line[1].strip()
+        f.close()
 
-        if options["password"] is None:
-            options["password"] = getpass.getpass()
