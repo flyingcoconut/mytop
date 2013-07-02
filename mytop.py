@@ -16,30 +16,16 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
-# Things to do
-#
-# add kill feature in paused mode
-# add explain feature for sql query
-# add filter function
-# add highlight capabilities with colors
-# add a preference (config file) eg. .mytop.conf in home
-# add a better help
-# add a better scrolling during pause for process
-# add a background thread for mysql processing and query
-# db serveur aggregation
-# add history mode
 
 import os
 import sys
 import time
 import curses
+import curses.textpad
 import signal
 import getopt
 import datetime
 import getpass
-import re
 
 
 try: #try to import mytop
@@ -114,7 +100,52 @@ def arg_parser():
     return options
 
 def write_to_file(scr, pm):
-    print "todo"
+    scr.addstr(3, 0, 'Write to : ')
+    scr.move(3, 11)
+    scr.nodelay(0)
+    curses.echo()
+    scr.refresh()
+    path = scr.getstr()
+    if os.path.exists(path) & os.path.isfile(path):
+        scr.move(3,0)
+        scr.clrtoeol()
+        curses.noecho()
+        curses.curs_set(0)
+        scr.addstr(3, 0, 'File exist. Do you want to overwrite ? [y/N]')
+        r = scr.getch()
+        if r == ord("y"):
+            scr.refresh()
+            try :
+                f = open(path, "w")
+                f.write("Id;User;Host;Db;State;Time;Info\n")
+                for p in pm.process:
+                    line = str(p.pid) + ";" + p.user + ";" + p.host + ";" + p.db + ";" + p.state + ";" + str(p.time) + ";" + p.info
+                    f.write(line + "\n")
+                f.close()
+            except:
+                scr.move(3,0)
+                scr.clrtoeol()
+                scr.addstr(3, 0, 'Impossible to write file')
+                scr.refresh()
+                time.sleep(1)
+    else:
+        try :
+            f = open(path, "w")
+            f.write("Id;User;Host;Db;State;Time;Info\n")
+            for p in pm.process:
+                line = str(p.pid) + ";" + p.user + ";" + p.host + ";" + p.db + ";" + p.state + ";" + str(p.time) + ";" + p.info
+                f.write(line + "\n")
+            f.close()
+        except:
+            scr.move(3,0)
+            scr.clrtoeol()
+            scr.addstr(3, 0, 'Impossible to write file')
+            scr.refresh()
+            time.sleep(1)
+    curses.noecho()
+    curses.curs_set(1)
+    scr.nodelay(1)
+    scr.refresh()
 
 
 def display_details(scr, process):
@@ -148,7 +179,7 @@ def display_header(scr, pm):
 
     """
     (maxY, maxX) = scr.getmaxyx()
-    scr.addstr(0, 0, time.ctime())
+    scr.addstr(0, 0, "Tasks : %s Total" % (str(len(pm.process))))
     scr.addstr(1, 0, 'User : %s, Uptime : %s' % (pm.user[:10], pm.uptime))
     scr.addstr(2, 0, 'Version : %s' % (pm.version))
     scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(maxX-60)), curses.A_BOLD|curses.A_REVERSE)
@@ -158,12 +189,12 @@ def display_footer(scr, text):
     Display footer mainly for action choice from user
     """ 
     (maxY, maxX) = scr.getmaxyx()
-    text = text.ljust(maxX-1)
     scr.addstr(maxY-1, 0, '%s' % (text), curses.A_BOLD | curses.A_REVERSE)
+    scr.hline(maxY-1, len(text), " ", maxX, curses.A_BOLD | curses.A_REVERSE)
 
 def display_process(scr, pm=None, highlight=None):
      """
-     Display process
+     Display process to screen
      """
      (maxY, maxX) = scr.getmaxyx()
      cnt = 5
@@ -186,16 +217,12 @@ def main(scr, user, db=None):
     curses.use_default_colors()
     scr.nodelay(1)
     scr.keypad(1)
-    #fp = open('debug', 'w+')
     maxInfo = (maxX-75)
     delay_counter = 1
     delay = 1
     paused = False
     cursor_pos = 0
     cursor_max_pos = 0
-    info = {}
-    history = []
-    max_history = 5
     while 1:
         key = scr.getch()
         if key == ord("q"):
@@ -234,6 +261,21 @@ def main(scr, user, db=None):
             scr.nodelay(1)
             scr.refresh()
             scr.erase()
+        elif key == ord("f"):
+            scr.addstr(3, 0, 'Specify column to filter : ')
+            scr.move(3, 27)
+            scr.nodelay(0)
+            curses.echo()
+            scr.refresh()
+            key = scr.getstr()
+            scr.addstr(3, 0, 'Specify a value or regexp : ')
+            scr.move(3, 28)
+            value = scr.getstr()
+            pm.add_filter(key, value)
+            curses.noecho()
+            scr.nodelay(1)
+            scr.refresh()
+            scr.erase()
         elif key == ord("k"):
             scr.addstr(3, 0, 'Specify the id process to kill : ')
             scr.move(3, 33)
@@ -244,7 +286,7 @@ def main(scr, user, db=None):
             for pid in pids:
                 try:
                     db.kill(pid)
-                except MySQLdb.OperationalError as e:
+                except mytop.processManagerError as e:
                     scr.move(3,0)
                     scr.clrtoeol()
                     scr.addstr(3, 0, '%s' % (e))
@@ -255,38 +297,21 @@ def main(scr, user, db=None):
             scr.refresh()
 
         elif key == ord("w"):
-            scr.addstr(3, 0, 'Write to : ')
-            scr.move(3, 11)
-            scr.nodelay(0)
-            curses.echo()
-            scr.refresh()
-            path = scr.getstr()
-            if os.path.exists(path) & os.path.isfile(path):
-                scr.move(3,0)
-                scr.clrtoeol()
-                curses.noecho()
-                scr.addstr(3, 0, 'File exist. Do you want to overwrite ? [y/N]')
-                r = scr.getch()
-                if r == ord("y"):
-                    scr.refresh()
-                    try :
-                        f = open(path, "w")
-                        f.write("Id;User;Host;Db;State;Time;Info\n")
-                        for p in db.process:
-                            line = str(p.pid) + ";" + p.user + ";" + p.host + ";" + p.db + ";" + p.state + ";" + str(p.time) + ";" + p.info
-                            f.write(line + "\n")
-                        f.close()
-                    except:
-                        scr.move(3,0)
-                        scr.clrtoeol()
-                        scr.addstr(3, 0, 'Impossible to write file')
-                        scr.refresh()
-                        time.sleep(1)
-            curses.noecho()
-            scr.nodelay(1)
-            scr.refresh()
+            write_to_file(scr, pm)
         elif key == ord("f"):
             scr.addstr(3, 0, 'filter : ')
+        elif key == curses.KEY_DOWN:
+            if cursor_pos < len(db.process) - 1:
+                cursor_pos = cursor_pos + 1
+            display_process(scr, db, cursor_pos)
+            scr.move(3, 0)
+            scr.refresh()
+        elif key == curses.KEY_UP:
+            if cursor_pos > 0:
+                cursor_pos = cursor_pos - 1
+            display_process(scr, db, cursor_pos)
+            scr.move(3, 0)
+            scr.refresh()
         elif key == ord("p"):
             if paused:
                 paused = False
@@ -326,18 +351,18 @@ def main(scr, user, db=None):
                         scr.move(3, 0)
                         scr.refresh()
                           
-        if delay_counter  == delay and not paused:
+        if delay_counter  > delay and not paused:
             delay_counter = 0                       
             pm.refresh()
             scr.erase()
             display_header(scr, pm)
-            display_process(scr, pm)
-            display_footer(scr, " [d]elay  [f]ilter  [H]ighlight  [k]ill  [w]rite  [h]elp  [q]uit")
+            display_process(scr, pm, cursor_pos)
+            display_footer(scr, " [d]elay  [f]ilter  [H]ighlight  [k]ill  [p]aused  [w]rite  [h]elp  [q]uit")
             scr.move(3, 0)
         else:
-            delay_counter = delay_counter + 0.5
-            
-        time.sleep(0.5)
+            delay_counter = delay_counter + 0.1
+        
+        time.sleep(0.1)
 
 
 if __name__ == '__main__':

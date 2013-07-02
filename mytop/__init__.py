@@ -18,6 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import getopt
 import datetime
+import re
 
 try: #Try to import MySQLdb library
     import MySQLdb
@@ -111,6 +112,7 @@ class processManager(object):
         self._uptime = 0
         self._process = []
         self._sql = None
+        self._filter = {}
         
     @property
     def user(self):
@@ -153,7 +155,36 @@ class processManager(object):
 
     @property
     def process(self):
-        if self._backend == "mysql":
+        if len(self._filter) > 0:
+            filtered_process = []
+            for p in self._process:
+                hits = 0
+                for key in self._filter.keys():
+                    if key == "pid":
+                        if re.match(self._filter[key], p.pid, flags=0):
+                            hits = hits + 1
+                    elif key == "user":
+                        if re.match(self._filter[key], p.user, flags=0):
+                            hits = hits + 1
+                    elif key == "host":
+                        if re.match(self._filter[key], p.host, flags=0):
+                            hits = hits + 1
+                    elif key == "db":
+                        if re.match(self._filter[key], p.db, flags=0):
+                            hits = hits + 1
+                    elif key == "state":
+                        if re.match(self._filter[key], p.state, flags=0):
+                            hits = hits + 1
+                    elif key == "time":
+                        if re.match(self._filter[key], p.time, flags=0):
+                            hits = hits + 1
+                    elif key == "info":
+                        if re.match(self._filter[key], p.info, flags=0):
+                            hits = hits + 1
+                    if hits == len(self._filter.keys()):
+                        filtered_process.append(p)
+            return filtered_process
+        else:
             return self._process
 
     @property
@@ -167,6 +198,18 @@ class processManager(object):
         if self._backend == "mysql":
             self._uptime_mysql()
             return self._uptime
+
+    def add_filter(self, key, value):
+        self._filter[key] = value
+
+    def get_filter(self, key):
+        return self._filter[key]
+
+    def del_filter(self, key):
+        del self._filter[key]
+
+    def del_all_filter(self):
+        self._filter.clear()
 
     def refresh(self):
         if self._backend == "mysql":
@@ -238,13 +281,19 @@ class processManager(object):
         self._uptime = str(datetime.timedelta(seconds = int(self._sql.fetchone()[1])))
 
     def _kill_mysql(self, pid):
-        self._sql.execute('kill ' + pid)
+        try:
+            self._sql.execute('kill ' + pid)
+        except MySQLdb.OperationalError as e:
+            raise processManagerError("Impossible to kill pid : " + str(pid))
+            
 
 
 class processAgregator(object):
     def __init__(self):
         self._db = []
 
+    def remove(self, db):
+        print "todo"
 
     def append(self, db):
         self._db.append(db)
