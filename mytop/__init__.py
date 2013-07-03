@@ -161,20 +161,35 @@ class processManager(object):
                 hits = 0
                 for key in self._filter.keys():
                     if key == "pid":
-                        if re.match(self._filter[key], p.pid, flags=0):
-                            hits = hits + 1
+                        try:
+                            if re.match(self._filter[key], p.pid, flags=0):
+                                hits = hits + 1
+                        except:
+                            pass
                     elif key == "user":
-                        if re.match(self._filter[key], p.user, flags=0):
-                            hits = hits + 1
+                        try:
+                            if re.match(self._filter[key], p.user, flags=0):
+                                hits = hits + 1
+                        except:
+                            pass
                     elif key == "host":
-                        if re.match(self._filter[key], p.host, flags=0):
-                            hits = hits + 1
+                        try:
+                            if re.match(self._filter[key], p.host, flags=0):
+                                hits = hits + 1
+                        except:
+                            pass
                     elif key == "db":
-                        if re.match(self._filter[key], p.db, flags=0):
-                            hits = hits + 1
+                        try:
+                            if re.match(self._filter[key], p.db, flags=0):
+                                hits = hits + 1
+                        except:
+                            pass
                     elif key == "state":
-                        if re.match(self._filter[key], p.state, flags=0):
-                            hits = hits + 1
+                        try:
+                            if re.match(self._filter[key], p.state, flags=0):
+                                hits = hits + 1
+                        except:
+                            pass
                     elif key == "time":
                         if re.match(self._filter[key], p.time, flags=0):
                             hits = hits + 1
@@ -203,13 +218,19 @@ class processManager(object):
         self._filter[key] = value
 
     def get_filter(self, key):
-        return self._filter[key]
+        try:
+            return self._filter[key]
+        except KeyError:
+            return ""
 
     def del_filter(self, key):
         del self._filter[key]
 
     def del_all_filter(self):
         self._filter.clear()
+
+    def list_filter(self):
+        return self._filter.keys()
 
     def refresh(self):
         if self._backend == "mysql":

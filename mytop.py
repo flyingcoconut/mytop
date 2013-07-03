@@ -147,6 +147,30 @@ def write_to_file(scr, pm):
     scr.nodelay(1)
     scr.refresh()
 
+def display_filters(scr, pm):
+    """
+    Display filters to screen
+    """
+    scr.erase()
+    (maxY, maxX) = scr.getmaxyx()
+    scr.addstr(0, 0, "Filters")
+    scr.addstr(2, 1, "pid", curses.A_BOLD)
+    scr.addstr(2, 9, pm.get_filter("pid"))
+    scr.addstr(5, 1, "User", curses.A_BOLD)
+    scr.addstr(2, 9, pm.get_filter("user"))
+    scr.addstr(8, 1, "Host", curses.A_BOLD)
+    scr.addstr(2, 9, pm.get_filter("host"))
+    scr.addstr(11, 1, "Database", curses.A_BOLD)
+    scr.addstr(2, 9, pm.get_filter("database"))
+    scr.addstr(14, 1, "State", curses.A_BOLD)
+    scr.addstr(2, 9, pm.get_filter("state"))
+    scr.addstr(17, 1, "Time", curses.A_BOLD)
+    scr.addstr(2, 9, pm.get_filter("time"))
+    scr.addstr(20, 1, "Info", curses.A_BOLD)
+    scr.addstr(2, 9, pm.get_filter("info"))
+    scr.refresh()
+    scr.getch()
+
 
 def display_details(scr, process):
     """
@@ -262,20 +286,50 @@ def main(scr, user, db=None):
             scr.refresh()
             scr.erase()
         elif key == ord("f"):
-            scr.addstr(3, 0, 'Specify column to filter : ')
-            scr.move(3, 27)
+            #display_filters(scr, pm)
+            #if len(pm.list_filter()) > 0
+            key = ""
+            scr.addstr(3, 0, '[p]id [u]ser [h]ost [d]atabase [s]tate [t]ime [i]nfo [r]eset : ')
+            scr.move(3, 63)
             scr.nodelay(0)
             curses.echo()
             scr.refresh()
-            key = scr.getstr()
-            scr.addstr(3, 0, 'Specify a value or regexp : ')
-            scr.move(3, 28)
-            value = scr.getstr()
-            pm.add_filter(key, value)
-            curses.noecho()
+            key = scr.getch()
+            if key == ord("p"):
+                key = "pid"
+            elif key == ord("u"):
+                key = "user"
+            elif key == ord("h"):
+                key = "host"
+            elif key == ord("d"):
+                key = "db"
+            elif key == ord("s"):
+                key = "state"
+            elif key == ord("t"):
+                key = state
+            elif key == ord("i"):
+                key = "info"
+            elif key == ord("r"):
+                pm.del_all_filter()
+                key = None
+            else:
+                key = None
+            if key is not None:
+                scr.move(3,0)
+                scr.clrtoeol()
+                txt_value = "Specify a value or regexp [ " + pm.get_filter(key) + " ] : "
+                scr.addstr(3, 0, 'Specify a value or regexp [ %s ] : ' % (pm.get_filter(key)))
+                scr.move(3, len(txt_value))
+                value = scr.getstr()
+                if value == "":
+                    value = pm.get_filter(key)
+                pm.add_filter(key, value)
+                curses.noecho()
+                scr.nodelay(1)
+                scr.refresh()
+                #scr.erase()
             scr.nodelay(1)
-            scr.refresh()
-            scr.erase()
+            curses.noecho()
         elif key == ord("k"):
             scr.addstr(3, 0, 'Specify the id process to kill : ')
             scr.move(3, 33)
