@@ -147,37 +147,14 @@ def write_to_file(scr, pm):
     scr.nodelay(1)
     scr.refresh()
 
-def display_filters(scr, pm):
-    """
-    Display filters to screen
-    """
-    scr.erase()
-    (maxY, maxX) = scr.getmaxyx()
-    scr.addstr(0, 0, "Filters")
-    scr.addstr(2, 1, "pid", curses.A_BOLD)
-    scr.addstr(2, 9, pm.get_filter("pid"))
-    scr.addstr(5, 1, "User", curses.A_BOLD)
-    scr.addstr(2, 9, pm.get_filter("user"))
-    scr.addstr(8, 1, "Host", curses.A_BOLD)
-    scr.addstr(2, 9, pm.get_filter("host"))
-    scr.addstr(11, 1, "Database", curses.A_BOLD)
-    scr.addstr(2, 9, pm.get_filter("database"))
-    scr.addstr(14, 1, "State", curses.A_BOLD)
-    scr.addstr(2, 9, pm.get_filter("state"))
-    scr.addstr(17, 1, "Time", curses.A_BOLD)
-    scr.addstr(2, 9, pm.get_filter("time"))
-    scr.addstr(20, 1, "Info", curses.A_BOLD)
-    scr.addstr(2, 9, pm.get_filter("info"))
-    scr.refresh()
-    scr.getch()
-
-
 def display_details(scr, process):
     """
     Display all info about a process
     """
     (maxY, maxX) = scr.getmaxyx()
     scr.erase()
+    scr.nodelay(0)
+    curses.curs_set(0)
     scr.addstr(0, 0, "Process infos")
     scr.addstr(2, 1, "Id", curses.A_BOLD)
     scr.addstr(3, 1, str(process.pid))
@@ -196,6 +173,8 @@ def display_details(scr, process):
     scr.addstr(maxY-1, 0, "Press any key to quit")
     scr.refresh()
     scr.getch()
+    scr.nodelay(1)
+    curses.curs_set(1)
 
 def display_header(scr, pm):
     """
@@ -203,9 +182,16 @@ def display_header(scr, pm):
 
     """
     (maxY, maxX) = scr.getmaxyx()
-    scr.addstr(0, 0, "Tasks : %s Total" % (str(len(pm.process))))
-    scr.addstr(1, 0, 'User : %s, Uptime : %s' % (pm.user[:10], pm.uptime))
-    scr.addstr(2, 0, 'Version : %s' % (pm.version))
+    total_task = 0
+    filtered_task = 0
+    if len(pm._filter) > 0:
+        total_task = len(pm._process)
+        filtered_task = len(pm.process)
+    else:
+        total_task = len(pm.process)
+    scr.addstr(0, 0, "Tasks : %s Total, %s filtered" % (str(total_task), str(filtered_task)))
+    scr.addstr(1, 0, 'User : %s, Host : %s, Uptime : %s' % (pm.user[:10], pm.host[:15], pm.uptime))
+    scr.addstr(2, 0, 'Port : %s, Version : %s' % (pm.port, pm.version))
     scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(maxX-60)), curses.A_BOLD|curses.A_REVERSE)
 
 def display_footer(scr, text):
@@ -354,65 +340,53 @@ def main(scr, user, db=None):
             write_to_file(scr, pm)
         elif key == ord("f"):
             scr.addstr(3, 0, 'filter : ')
-        elif key == curses.KEY_DOWN:
-            if cursor_pos < len(db.process) - 1:
-                cursor_pos = cursor_pos + 1
+        elif key == curses.KEY_DOWN or key == curses.KEY_UP:
+            if key == curses.KEY_DOWN:
+                if cursor_pos < len(db.process) - 1:
+                    cursor_pos = cursor_pos + 1
+            if key == curses.KEY_UP:
+                if cursor_pos > 0:
+                    cursor_pos = cursor_pos - 1
             display_process(scr, db, cursor_pos)
             scr.move(3, 0)
             scr.refresh()
-        elif key == curses.KEY_UP:
-            if cursor_pos > 0:
-                cursor_pos = cursor_pos - 1
-            display_process(scr, db, cursor_pos)
-            scr.move(3, 0)
-            scr.refresh()
+            t = time.time()
+            while time.time() - t < 4:
+                key = scr.getch()
+                if key == curses.KEY_DOWN:
+                    if cursor_pos < len(db.process) - 1:
+                        cursor_pos = cursor_pos + 1
+                elif key == curses.KEY_UP:
+                    if cursor_pos > 0:
+                        cursor_pos = cursor_pos - 1
+                else:
+                    break
+                display_process(scr, db, cursor_pos)
+                scr.move(3, 0)
+                scr.refresh()
+        elif key == ord("i"):
+            display_details(scr, db.process[cursor_pos])
+            scr.erase()
         elif key == ord("p"):
             if paused:
                 paused = False
                 delay_counter = delay
-                scr.erase()
             else:
-                scr.addstr(3, 0, 'Pause', curses.A_BLINK)
-                display_process(scr, db, cursor_pos)
-                display_footer(scr, " [u]p  [d]own  [i]nfo  [q]uit")
-                scr.refresh()
                 paused = True
-                scr.nodelay(0)
                 curses.curs_set(0)
-                while paused:
-                    key = scr.getch()
-                    if key == curses.KEY_DOWN:
-                        if cursor_pos < len(db.process) - 1:
-                            cursor_pos = cursor_pos + 1
-                        display_process(scr, db, cursor_pos)
-                        scr.refresh()
-                    elif key == curses.KEY_UP:
-                        if cursor_pos > 0:
-                            cursor_pos = cursor_pos - 1
-                        display_process(scr, db, cursor_pos)
-                        scr.refresh()
-                    elif key == ord("i"):
-                        display_details(scr, db.process[cursor_pos])
-                        scr.erase()
-                        display_header(scr, db)
-                        display_process(scr, db, cursor_pos)
-                        display_footer(scr, " [u]p  [d]own  [i]nfo  [q]uit")
-                        scr.addstr(3, 0, 'Pause', curses.A_BLINK)
-                    elif key == ord("q"):
-                        paused = False
-                        scr.nodelay(1)
-                        curses.curs_set(1)
-                        scr.move(3, 0)
-                        scr.refresh()
+                scr.addstr(3, 0, 'Pause', curses.A_BLINK)
+
                           
-        if delay_counter  > delay and not paused:
+        if delay_counter  > delay:
             delay_counter = 0                       
             pm.refresh()
             scr.erase()
             display_header(scr, pm)
             display_process(scr, pm, cursor_pos)
-            display_footer(scr, " [d]elay  [f]ilter  [H]ighlight  [k]ill  [p]aused  [w]rite  [h]elp  [q]uit")
+            display_footer(scr, "[d]elay [f]ilter [H]ighlight [i]nfo [k]ill [p]aused [s]ats [w]rite [h]elp [q]uit")
             scr.move(3, 0)
+        elif paused:
+            pass
         else:
             delay_counter = delay_counter + 0.1
         
