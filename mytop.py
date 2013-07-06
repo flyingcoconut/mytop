@@ -48,9 +48,9 @@ def show_help():
 Example: mytop -u root -h localhost -p password
 
 Options:
-  -h, --host=host_name      set hostname
-  -p, --password            set password
-  -P, --port=port           set port number
+  -h, --host=HOSTNAME       set hostname
+  -p, --password=PASSWORD   set password
+  -P, --port=PORT           set port number
   -u, --user=USERNAME       set username
 
 Miscellaneous:
@@ -96,7 +96,6 @@ def arg_parser():
 
     if options["password"] is None:
         options["password"] = getpass.getpass()
-
     return options
 
 def write_to_file(scr, pm):
