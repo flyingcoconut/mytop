@@ -204,15 +204,11 @@ class processManager(object):
 
     @property
     def version(self):
-        if self._backend == "mysql":
-            self._version_mysql()
-            return self._version
+        return self._version
 
     @property
     def uptime(self):
-        if self._backend == "mysql":
-            self._uptime_mysql()
-            return self._uptime
+        return self._uptime
 
     def add_filter(self, key, value):
         self._filter[key] = value
@@ -235,6 +231,8 @@ class processManager(object):
     def refresh(self):
         if self._backend == "mysql":
             self._process_mysql()
+            self._uptime_mysql()
+            self._version_mysql()
 
     def history(self, pos):
         return self._history[pos]
@@ -258,7 +256,10 @@ class processManager(object):
             self._kill_mysql(pid)
 
     def _process_mysql(self):
-        self._sql.execute('SHOW FULL PROCESSLIST;')
+        try:
+            self._sql.execute('SHOW FULL PROCESSLIST;')
+        except:
+            raise processManagerError("Could not retieve process")
         all_process = []
         try:
             for row in self._sql.fetchall():
@@ -294,12 +295,18 @@ class processManager(object):
             pass
 
     def _version_mysql(self):
-        self._sql.execute('select VERSION();')
-        self._version = self._sql.fetchone()[0]
+        try:
+            self._sql.execute('select VERSION();')
+            self._version = self._sql.fetchone()[0]
+        except:
+            raise processManagerError("Could no retrive version")
 
     def _uptime_mysql(self):
-        self._sql.execute('show status where Variable_name="Uptime"')
-        self._uptime = str(datetime.timedelta(seconds = int(self._sql.fetchone()[1])))
+        try:
+            self._sql.execute('show status where Variable_name="Uptime"')
+            self._uptime = str(datetime.timedelta(seconds = int(self._sql.fetchone()[1])))
+        except:
+            raise processManagerError("Could no retrive uptime")
 
     def _kill_mysql(self, pid):
         try:

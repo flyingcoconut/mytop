@@ -21,7 +21,6 @@ import os
 import sys
 import time
 import curses
-import curses.textpad
 import signal
 import getopt
 import datetime
@@ -147,6 +146,22 @@ def write_to_file(scr, pm):
     scr.nodelay(1)
     scr.refresh()
 
+def connection_error(scr, pm):
+    timeout = 15
+    while timeout > 0:
+        scr.move(3,0)
+        scr.clrtoeol()
+        scr.addstr(3, 0, 'Database disconnected. Retry in %s seconds. Retry now [y]' % (str(timeout)))
+        scr.move(3, 60)
+        scr.refresh()
+        r = scr.getch()
+        if r == ord("y"):
+            break
+        else:
+            timeout = timeout - 1
+            time.sleep(1)
+
+
 def display_details(scr, process):
     """
     Display all info about a process
@@ -210,14 +225,13 @@ def display_process(scr, pm=None, highlight=None):
      cnt = 5
      for p in pm.process[:(maxY-6)]:
          if highlight is not None:
-             if highlight == (cnt - 5):
+             if highlight == (cnt - 5) and len(pm.process) > 0 :
                  scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]), curses.A_REVERSE)
              else:
                  scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]))
          else:
              scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]))
          cnt += 1
-#         scr.addstr(cnt, 0, ' '*(maxX-1))
 
 def main(scr, user, db=None):
     """
@@ -272,8 +286,6 @@ def main(scr, user, db=None):
             scr.refresh()
             scr.erase()
         elif key == ord("f"):
-            #display_filters(scr, pm)
-            #if len(pm.list_filter()) > 0
             key = ""
             scr.addstr(3, 0, '[p]id [u]ser [h]ost [d]atabase [s]tate [t]ime [i]nfo [r]eset : ')
             scr.move(3, 63)
@@ -313,7 +325,6 @@ def main(scr, user, db=None):
                 curses.noecho()
                 scr.nodelay(1)
                 scr.refresh()
-                #scr.erase()
             scr.nodelay(1)
             curses.noecho()
         elif key == ord("k"):
@@ -351,7 +362,7 @@ def main(scr, user, db=None):
             scr.move(3, 0)
             scr.refresh()
             t = time.time()
-            while time.time() - t < 4:
+            while time.time() - t < 1:
                 key = scr.getch()
                 if key == curses.KEY_DOWN:
                     if cursor_pos < len(db.process) - 1:
@@ -359,8 +370,6 @@ def main(scr, user, db=None):
                 elif key == curses.KEY_UP:
                     if cursor_pos > 0:
                         cursor_pos = cursor_pos - 1
-                else:
-                    break
                 display_process(scr, db, cursor_pos)
                 scr.move(3, 0)
                 scr.refresh()
@@ -373,23 +382,28 @@ def main(scr, user, db=None):
                 delay_counter = delay
             else:
                 paused = True
-                curses.curs_set(0)
-                scr.addstr(3, 0, 'Pause', curses.A_BLINK)
 
                           
         if delay_counter  > delay:
-            delay_counter = 0                       
-            pm.refresh()
-            scr.erase()
-            display_header(scr, pm)
-            display_process(scr, pm, cursor_pos)
-            display_footer(scr, "[d]elay [f]ilter [H]ighlight [i]nfo [k]ill [p]aused [s]ats [w]rite [h]elp [q]uit")
-            scr.move(3, 0)
+            delay_counter = 0      
+            try:                 
+                pm.refresh()
+            except mytop.processManagerError:
+                connection_error(scr, pm)
         elif paused:
             pass
         else:
             delay_counter = delay_counter + 0.1
         
+        scr.erase()
+        display_header(scr, pm)
+        display_process(scr, pm, cursor_pos)
+        display_footer(scr, "[d]elay [f]ilter [i]nfo [k]ill [p]aused [s]ats [w]rite [h]elp [q]uit")
+        scr.move(3, 0)
+        curses.curs_set(1)
+        if paused:
+            curses.curs_set(0)
+            scr.addstr(3, 0, 'Pause', curses.A_BLINK)
         time.sleep(0.1)
 
 
