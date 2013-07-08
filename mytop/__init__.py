@@ -25,6 +25,8 @@ try: #Try to import MySQLdb library
 except ImportError:
     print "MySQL library is missing"
 
+VERSION = "0.0.1"
+
 class processManagerError(Exception):
     def __init__(self, value):
         self.value = value
@@ -235,7 +237,7 @@ class processManager(object):
             self._version_mysql()
 
     def history(self, pos):
-        return self._history[pos]
+        self._process = self._history[pos]
 
     def connect(self):
         if self._backend == "mysql":
@@ -285,14 +287,14 @@ class processManager(object):
                     query = row[7]
                 p = process(row[0], row[1], row[2].split(':')[0], dbName, state, row[5], query)
                 all_process.append(p)
-            self._process = all_process
-            if len(self._history) > self._max_history:
-                self._history.remove(self._max_history)
-                self._history.append(p)
-            else:
-                self._history.append(p)
         except:
             pass
+        if len(self._history) > self._max_history:
+            self._history.pop(0)
+            self._history.append(self._process)
+        else:
+            self._history.append(self._process)
+        self._process = all_process
 
     def _version_mysql(self):
         try:

@@ -56,8 +56,6 @@ Miscellaneous:
   -V, --version         print version information and exit
   --help                display this help and exit
 
-Behavior:
-
 Report bugs to: patrick.charron.pc@gmail.com"""
 
 def arg_parser():
@@ -151,7 +149,7 @@ def connection_error(scr, pm):
         scr.move(3,0)
         scr.clrtoeol()
         scr.addstr(3, 0, 'Database disconnected. Retry in %s seconds. Retry now [y]' % (str(timeout)))
-        scr.move(3, 60)
+        scr.move(3, 58)
         scr.refresh()
         r = scr.getch()
         if r == ord("y"):
@@ -222,9 +220,11 @@ def display_process(scr, pm=None, highlight=None):
      """
      (maxY, maxX) = scr.getmaxyx()
      cnt = 5
+     if highlight > len(pm.process):
+         highlight = len(pm.process) - 1
      for p in pm.process[:(maxY-6)]:
          if highlight is not None:
-             if highlight == (cnt - 5) and len(pm.process) > 0 :
+             if highlight == (cnt - 5):
                  scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]), curses.A_REVERSE)
              else:
                  scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]))
@@ -244,27 +244,34 @@ def main(scr, user, db=None):
     delay_counter = 1
     delay = 1
     paused = False
+    history = False
+    history_pos = 0
     cursor_pos = 0
     cursor_max_pos = 0
     while 1:
         key = scr.getch()
         if key == ord("q"):
             sys.exit()
-        elif key == ord("h"):
-            scr.erase()
-            scr.addstr(0, 0, "Help for Interactive Commands")
-            scr.addstr(2, 2, "d")
-            scr.nodelay(0)
-            scr.refresh()
-            scr.getch()
-            scr.nodelay(1)
-        if key == curses.KEY_LEFT:
-            scr.addstr(3, 0, 'History', curses.A_BLINK)
-            display_process(scr, history[len(history) - 1])
-            display_footer(scr, " left right  [q]uit")
-            scr.refresh()
-            scr.nodelay(0)
-            curses.curs_set(0)
+        elif key == curses.KEY_LEFT or key == curses.KEY_RIGHT:
+            if len(pm._history) == 0:
+                scr.addstr(3, 0, 'No history')
+                time.sleep(1)
+            elif history:
+                if key == curses.KEY_LEFT:
+                    if history_pos != 0:
+                        history_pos = history_pos - 1
+                        pm.history(history_pos)
+                if key == curses.KEY_RIGHT:
+                    history_pos = history_pos + 1
+                    if history_pos > len(pm._history) - 1:
+                        history = False
+                    else:
+                        pm.history(history_pos)
+            else:
+                if key != curses.KEY_RIGHT:
+                    history = True
+                    history_pos = len(pm._history) - 1
+                    pm.history(history_pos)
         elif key == ord("d"):
             scr.addstr(3, 0, 'Specify delay in second : ')
             scr.move(3, 26)
@@ -381,8 +388,6 @@ def main(scr, user, db=None):
                 delay_counter = delay
             else:
                 paused = True
-
-                          
         if delay_counter  > delay:
             delay_counter = 0      
             try:                 
@@ -391,18 +396,23 @@ def main(scr, user, db=None):
                 connection_error(scr, pm)
         elif paused:
             pass
+        elif history:
+            pass
         else:
             delay_counter = delay_counter + 0.1
         
         scr.erase()
         display_header(scr, pm)
         display_process(scr, pm, cursor_pos)
-        display_footer(scr, "[d]elay [f]ilter [i]nfo [k]ill [p]aused [s]ats [w]rite [h]elp [q]uit")
+        display_footer(scr, "[d]elay [f]ilter [i]nfo [k]ill [p]aused [s]ats [w]rite [q]uit")
         scr.move(3, 0)
         curses.curs_set(1)
-        if paused:
+        if paused or history:
             curses.curs_set(0)
             scr.addstr(3, 0, 'Pause', curses.A_BLINK)
+        if history:
+            curses.curs_set(0)
+            scr.addstr(3, 0, 'History (%s / %s)' % (str(history_pos), str(len(pm._history) - 1)), curses.A_BLINK)
         time.sleep(0.1)
 
 
@@ -411,6 +421,8 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal_handler)
     #Call the parser function
     options = arg_parser()
+    cf = mytop.config(".mytop.conf")
+    cf.parse()
     #Try to connect to the MySQL server
     pm = mytop.processManager(backend="mysql",host=options["host"], user=options["user"], password=options["password"], port=options["port"])
     try:
@@ -418,6 +430,7 @@ if __name__ == '__main__':
     except mytop.processManagerError as e:
         print "Impossible to connect to the database"
         sys.exit(1)
+    pm.max_history = int(cf.get_option("max_history"))
     #Curses wrapper around the main function
     curses.wrapper(main, options["user"], pm)
 
