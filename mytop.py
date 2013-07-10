@@ -157,6 +157,56 @@ def connection_error(scr, pm):
         else:
             timeout = timeout - 1
             time.sleep(1)
+    pm.close()
+    try:
+        pm.connect()
+    except mytop.processManagerError as e:
+        pass
+
+def edit_connection(scr, pm):
+    reload_pm = False
+    scr.nodelay(0)
+    curses.echo()
+    scr.addstr(3, 0, '[h]ost [u]ser [p]ort [P]assword : ')
+    scr.nodelay(0)
+    curses.echo()
+    scr.refresh()
+    key = scr.getch()
+    scr.move(3,0)
+    scr.clrtoeol()
+    if key == ord("h"):
+        scr.addstr(3, 0, "host [ %s ] : " % (pm.host))
+        value = scr.getstr()
+        if value != "":
+            pm.host = value
+            reload_pm = True
+    elif key == ord("u"):
+        scr.addstr(3, 0, "user [ %s ] : " % (pm.user))
+        value = scr.getstr()
+        if value != "":
+            pm.user = value
+            reload_pm = True
+    elif key == ord("p"):
+        scr.addstr(3, 0, "port [ %s ] : " % (pm.port))
+        value = scr.getstr()
+        if value != "":
+            pm.port = int(value)
+            reload_pm = True
+    elif key == ord("P"):
+        scr.addstr(3, 0, "password : ")
+        value = scr.getstr()
+        if value != "":
+            pm.password = value
+            reload_pm = True
+    if reload_pm:
+        pm.close()
+        try:
+            pm.connect()
+        except:
+            pass
+    scr.nodelay(1)
+    curses.noecho()
+
 
 
 def display_details(scr, process):
@@ -291,6 +341,8 @@ def main(scr, user, db=None):
             scr.nodelay(1)
             scr.refresh()
             scr.erase()
+        elif key == ord("e"):
+            edit_connection(scr, pm)
         elif key == ord("f"):
             key = ""
             scr.addstr(3, 0, '[p]id [u]ser [h]ost [d]atabase [s]tate [t]ime [i]nfo [r]eset : ')
@@ -404,7 +456,7 @@ def main(scr, user, db=None):
         scr.erase()
         display_header(scr, pm)
         display_process(scr, pm, cursor_pos)
-        display_footer(scr, "[d]elay [f]ilter [i]nfo [k]ill [p]aused [s]ats [w]rite [q]uit")
+        display_footer(scr, "[a]dd [d]elay [e]dit [f]ilter [i]nfo [k]ill [o]rder [p]aused [s]ats [w]rite [q]uit")
         scr.move(3, 0)
         curses.curs_set(1)
         if paused or history:

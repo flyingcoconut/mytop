@@ -212,6 +212,9 @@ class processManager(object):
     def uptime(self):
         return self._uptime
 
+    def order_by(self, key, asc=True):
+        print "todo"
+
     def add_filter(self, key, value):
         self._filter[key] = value
 
@@ -251,7 +254,6 @@ class processManager(object):
 
     def close(self):
         self._sql.close()
-        self._sql = None
 
     def kill(self, pid):
         if self._backend == "mysql":
