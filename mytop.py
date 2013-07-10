@@ -167,37 +167,36 @@ def edit_connection(scr, pm):
     reload_pm = False
     scr.nodelay(0)
     curses.echo()
-    scr.addstr(3, 0, '[h]ost [u]ser [p]ort [P]assword : ')
-    scr.nodelay(0)
-    curses.echo()
-    scr.refresh()
-    key = scr.getch()
     scr.move(3,0)
     scr.clrtoeol()
-    if key == ord("h"):
-        scr.addstr(3, 0, "host [ %s ] : " % (pm.host))
-        value = scr.getstr()
-        if value != "":
-            pm.host = value
-            reload_pm = True
-    elif key == ord("u"):
-        scr.addstr(3, 0, "user [ %s ] : " % (pm.user))
-        value = scr.getstr()
-        if value != "":
-            pm.user = value
-            reload_pm = True
-    elif key == ord("p"):
-        scr.addstr(3, 0, "port [ %s ] : " % (pm.port))
-        value = scr.getstr()
-        if value != "":
-            pm.port = int(value)
-            reload_pm = True
-    elif key == ord("P"):
-        scr.addstr(3, 0, "password : ")
-        value = scr.getstr()
-        if value != "":
-            pm.password = value
-            reload_pm = True
+    scr.addstr(3, 0, "host [ %s ] : " % (pm.host))
+    value = scr.getstr()
+    if value != "":
+        pm.host = value
+        reload_pm = True
+    scr.move(3,0)
+    scr.clrtoeol()
+    scr.addstr(3, 0, "user [ %s ] : " % (pm.user))
+    value = scr.getstr()
+    if value != "":
+        pm.user = value
+        reload_pm = True
+    scr.move(3,0)
+    scr.clrtoeol()
+    scr.addstr(3, 0, "port [ %s ] : " % (pm.port))
+    value = scr.getstr()
+    if value != "":
+        pm.port = int(value)
+        reload_pm = True
+    scr.move(3,0)
+    scr.clrtoeol()
+    curses.noecho()
+    scr.addstr(3, 0, "password : ")
+    value = scr.getstr()
+    if value != "":
+        pm.password = value
+        reload_pm = True
+
     if reload_pm:
         pm.close()
         try:
