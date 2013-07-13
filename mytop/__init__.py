@@ -323,12 +323,20 @@ class processManager(object):
 class processAgregator(object):
     def __init__(self):
         self._db = []
+        self.focus = None
 
-    def remove(self, db):
-        print "todo"
+    def remove(self, pm_id):
+        self._db[pm_id].close()
+        del self._db[pm_id]
 
     def append(self, db):
         self._db.append(db)
+
+    def get(self, pm_id):
+        return self._db[pm_id]
+
+    def focus(self, pm_id):
+        self.current = pm_id
     
     def connect(self):
         for db in self._db:
@@ -336,7 +344,10 @@ class processAgregator(object):
 
     def refresh(self):
         for db in self._db:
-            db.refresh()
+            try:
+                db.refresh()
+            except:
+                pass
 
     def close(self):
         for db in self._db:
@@ -347,12 +358,17 @@ class processAgregator(object):
 
     @property
     def process(self):
-        tmp_process = []
-        for db in self._db:
-            for p in db.process:
-                tmp_process.append(p)
-        return tmp_process
+        if focus == None:
+            tmp_process = []
+            for db in self._db:
+                for p in db.process:
+                    tmp_process.append(p)
+            return tmp_process
+        else:
+            return self._db[self.focus]
+            
 
+   
 class config(object):
     """
     A class to read and write config
