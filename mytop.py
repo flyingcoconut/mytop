@@ -27,27 +27,34 @@ import datetime
 import getpass
 
 
-try: #try to import mytop
-    import mytop
+try: #try to import sqltoplib
+    import sqltoplib
 except ImportError:
-    print "mytop library is missing"
+    print "sqltoplib library is missing"
     sys.exit(1)
 
 try:
     import sqlparse
-except:
+except ImportError:
     pass
 
 VERSION = "0.0.2"
 
 def signal_handler(signal, frame):
-        sys.exit(1)
+    """
+    Get signals and exit
+    """
+    sys.exit(1)
 
 def show_usage():
+    """
+    Print a usage message
+    """
     print """Usage: mytop [OPTION]... -u [USER]...
     """
 
 def show_help():
+    """Print a help message"""
     print """MySQL process viewer
 Example: mytop -u root -h localhost -p password
 
@@ -64,6 +71,9 @@ Miscellaneous:
 Report bugs to: patrick.charron.pc@gmail.com"""
 
 def arg_parser():
+    """
+    Function to parse command line arguments
+    """
     try:
         opts, args = getopt.getopt(sys.argv[1:], "h:p:P:u:V", ["host=", "password=", "port=", "user=", "version", "help"])
     except getopt.GetoptError, err:
@@ -101,6 +111,9 @@ def arg_parser():
     return options
 
 def write_to_file(scr, pm):
+    """
+    Write process to file in a csv format
+    """
     scr.addstr(3, 0, 'Write to : ')
     scr.move(3, 11)
     scr.nodelay(0)
@@ -108,7 +121,7 @@ def write_to_file(scr, pm):
     scr.refresh()
     path = scr.getstr()
     if os.path.exists(path) & os.path.isfile(path):
-        scr.move(3,0)
+        scr.move(3, 0)
         scr.clrtoeol()
         curses.noecho()
         curses.curs_set(0)
@@ -123,8 +136,8 @@ def write_to_file(scr, pm):
                     line = str(p.pid) + ";" + p.user + ";" + p.host + ";" + p.db + ";" + p.state + ";" + str(p.time) + ";" + p.info
                     f.write(line + "\n")
                 f.close()
-            except:
-                scr.move(3,0)
+            except IOError:
+                scr.move(3, 0)
                 scr.clrtoeol()
                 scr.addstr(3, 0, 'Impossible to write file')
                 scr.refresh()
@@ -137,8 +150,8 @@ def write_to_file(scr, pm):
                 line = str(p.pid) + ";" + p.user + ";" + p.host + ";" + p.db + ";" + p.state + ";" + str(p.time) + ";" + p.info
                 f.write(line + "\n")
             f.close()
-        except:
-            scr.move(3,0)
+        except IOError:
+            scr.move(3, 0)
             scr.clrtoeol()
             scr.addstr(3, 0, 'Impossible to write file')
             scr.refresh()
@@ -148,54 +161,32 @@ def write_to_file(scr, pm):
     scr.nodelay(1)
     scr.refresh()
 
-#def connection_error(scr, pm):
-#    timeout = 15
-#    while timeout > 0:
-#        scr.move(3,0)
-#        scr.clrtoeol()
-#        scr.addstr(3, 0, 'Database disconnected. Retry in %s seconds. Retry now [y]es or [e]dit : ' % (str(timeout)))
-#        scr.refresh()
-#        r = scr.getch()
-#        if r == ord("y"):
-#            break
-#        elif r == ord("e"):
-#            edit_connection(scr, pm)
-#            break
-#        else:
-#            timeout = timeout - 1
-#            time.sleep(1)
-#    try:
-#        pm.close()
-#    except mytop.processManagerError as e:
-#        pass
-#    try:
-#       pm.connect()
-#   except mytop.processManagerError as e:
-#        pass
-
 def add_connection(scr):
-    new_pm = mytop.processManager(backend="mysql")
+    """
+    Create a new sql connection and return it
+    """
+    new_pm = sqltoplib.processManager(backend="mysql")
     scr.nodelay(0)
     curses.echo()
-    scr.move(3,0)
+    scr.move(3, 0)
     scr.clrtoeol()
     scr.addstr(3, 0, "host : ")
     value = scr.getstr()
     if value != "":
         new_pm.host = value
-    scr.move(3,0)
+    scr.move(3, 0)
     scr.clrtoeol()
     scr.addstr(3, 0, "user : ")
     value = scr.getstr()
     if value != "":
         new_pm.user = value
-    scr.move(3,0)
+    scr.move(3, 0)
     scr.clrtoeol()
     scr.addstr(3, 0, "port : ")
     value = scr.getstr()
     if value != "":
         new_pm.port = int(value)
-    scr.move(3,0)
+    scr.move(3, 0)
     scr.clrtoeol()
     curses.noecho()
     scr.addstr(3, 0, "password : ")
@@ -208,31 +199,34 @@ def add_connection(scr):
     return new_pm
 
 def edit_connection(scr, pm):
+    """
+    Edit a sql conection
+    """
     reload_pm = False
     scr.nodelay(0)
     curses.echo()
-    scr.move(3,0)
+    scr.move(3, 0)
     scr.clrtoeol()
     scr.addstr(3, 0, "host [ %s ] : " % (pm.host))
     value = scr.getstr()
     if value != "":
         pm.host = value
         reload_pm = True
-    scr.move(3,0)
+    scr.move(3, 0)
     scr.clrtoeol()
     scr.addstr(3, 0, "user [ %s ] : " % (pm.user))
     value = scr.getstr()
     if value != "":
         pm.user = value
         reload_pm = True
-    scr.move(3,0)
+    scr.move(3, 0)
     scr.clrtoeol()
     scr.addstr(3, 0, "port [ %s ] : " % (pm.port))
     value = scr.getstr()
     if value != "":
         pm.port = int(value)
         reload_pm = True
-    scr.move(3,0)
+    scr.move(3, 0)
     scr.clrtoeol()
     curses.noecho()
     scr.addstr(3, 0, "password : ")
@@ -309,26 +303,26 @@ def display_footer(scr, text):
     scr.hline(maxY-1, len(text), " ", maxX, curses.A_BOLD | curses.A_REVERSE)
 
 def display_process(scr, pm=None, highlight=None):
-     """
-     Display process to screen
-     """
-     (maxY, maxX) = scr.getmaxyx()
-     cnt = 5
-     if highlight > len(pm.process):
-         highlight = len(pm.process) - 1
-     for p in pm.process[:(maxY-6)]:
-         if highlight is not None:
-             if highlight == (cnt - 5):
-                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]), curses.A_REVERSE)
-             else:
-                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]))
-         else:
-             scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]))
-         cnt += 1
-
-def main(scr, user, pm=None):
     """
-    This is the main function
+    Display process to screen
+    """
+    (maxY, maxX) = scr.getmaxyx()
+    cnt = 5
+    if highlight > len(pm.process):
+        highlight = len(pm.process) - 1
+    for p in pm.process[:(maxY-6)]:
+        if highlight is not None:
+            if highlight == (cnt - 5):
+                scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]), curses.A_REVERSE)
+            else:
+                scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]))
+        else:
+            scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]))
+        cnt += 1
+
+def main(scr, pm=None):
+    """
+    The main function
     """
     (maxY, maxX) = scr.getmaxyx()
     curses.use_default_colors()
@@ -348,20 +342,24 @@ def main(scr, user, pm=None):
     while 1:
         key = scr.getch()
         if key == ord("a"):
+            #Key for adding a sql connection
             new_pm = add_connection(scr)
             pms.append(new_pm)
         if key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"), ord("6"), ord("7"), ord("8"), ord("9")]:
+           #All keyboard key number are used to select wich connection to display
            index = int(chr(key)) - 1
            if index <= len(pms) - 1:
                pm_index = index
            else:
-               scr.move(3,0)
+               scr.move(3, 0)
                scr.clrtoeol()
                scr.addstr(3, 0, "Connection %d does not exist" % (index))
                time.sleep(1)
         if key == ord("q"):
-            sys.exit()
+            #Key to exit mytop
+            sys.exit(0)
         elif key == curses.KEY_LEFT or key == curses.KEY_RIGHT:
+            #Key to navigate history
             if len(pms[pm_index]._history) == 0:
                 scr.addstr(3, 0, 'No history')
                 time.sleep(1)
@@ -382,6 +380,7 @@ def main(scr, user, pm=None):
                     history_pos = len(pms[pm_index]._history) - 1
                     pms[pm_index].history(history_pos)
         elif key == ord("d"):
+            #Key to change delay
             scr.addstr(3, 0, 'Specify delay in second : ')
             scr.move(3, 26)
             scr.nodelay(0)
@@ -389,8 +388,8 @@ def main(scr, user, pm=None):
             scr.refresh()
             try:
                 delay = int(scr.getstr())
-            except:
-                scr.move(3,0)
+            except ValueError:
+                scr.move(3, 0)
                 scr.clrtoeol()
                 scr.addstr(3, 0, 'Bad delay value')
                 scr.refresh()
@@ -401,8 +400,10 @@ def main(scr, user, pm=None):
             scr.refresh()
             scr.erase()
         elif key == ord("e"):
+            #Key to edit the current connection
             edit_connection(scr, pm)
         elif key == ord("f"):
+            #key to edit or add filter
             key = ""
             scr.addstr(3, 0, '[p]id [u]ser [h]ost [d]atabase [s]tate [t]ime [i]nfo [r]eset : ')
             scr.nodelay(0)
@@ -429,7 +430,7 @@ def main(scr, user, pm=None):
             else:
                 key = None
             if key is not None:
-                scr.move(3,0)
+                scr.move(3, 0)
                 scr.clrtoeol()
                 txt_value = "Specify a value or regexp [ " + pms[pm_index].get_filter(key) + " ] : "
                 scr.addstr(3, 0, 'Specify a value or regexp [ %s ] : ' % (pms[pm_index].get_filter(key)))
@@ -444,6 +445,7 @@ def main(scr, user, pm=None):
             scr.nodelay(1)
             curses.noecho()
         elif key == ord("k"):
+            #key to kill sql process to threads
             scr.addstr(3, 0, 'Specify the id process to kill : ')
             scr.move(3, 33)
             scr.nodelay(0)
@@ -453,8 +455,8 @@ def main(scr, user, pm=None):
             for pid in pids:
                 try:
                     pm.kill(pid)
-                except mytop.processManagerError as e:
-                    scr.move(3,0)
+                except sqltoplib.processManagerError as e:
+                    scr.move(3, 0)
                     scr.clrtoeol()
                     scr.addstr(3, 0, '%s' % (e))
                     scr.refresh()
@@ -464,6 +466,7 @@ def main(scr, user, pm=None):
             scr.refresh()
 
         elif key == ord("w"):
+            #Key to write results to a file
             write_to_file(scr, pm)
         elif key == curses.KEY_DOWN or key == curses.KEY_UP:
             if key == curses.KEY_DOWN:
@@ -488,9 +491,11 @@ def main(scr, user, pm=None):
                 scr.move(3, 0)
                 scr.refresh()
         elif key == ord("i"):
+            #Key to display details about a process
             display_details(scr, pms[pm_index].process[cursor_pos])
             scr.erase()
         elif key == ord("p"):
+            #Key to pause mytop
             if paused:
                 paused = False
                 delay_counter = delay
@@ -501,7 +506,7 @@ def main(scr, user, pm=None):
             for p in pms: 
                 try:                 
                     p.refresh()
-                except mytop.processManagerError:
+                except sqltoplib.processManagerError:
                     pass
         elif paused:
             pass
@@ -530,16 +535,16 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal_handler)
     #Call the parser function
     options = arg_parser()
-    cf = mytop.config(".mytop.conf")
+    cf = sqltoplib.config(".mytop.conf")
     cf.parse()
     #Try to connect to the MySQL server
-    pm = mytop.processManager(backend="mysql",host=options["host"], user=options["user"], password=options["password"], port=options["port"])
+    pm = sqltoplib.processManager(backend="mysql", host=options["host"], user=options["user"], password=options["password"], port=options["port"])
     try:
         pm.connect()
-    except mytop.processManagerError as e:
+    except sqltoplib.processManagerError as error:
         pass
     pm.max_history = int(cf.get_option("max_history"))
     #Curses wrapper around the main function
-    curses.wrapper(main, options["user"], pm)
+    curses.wrapper(main, pm)
 
 
