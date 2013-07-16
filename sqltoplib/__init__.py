@@ -16,6 +16,10 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+sqloptlib is a library to manipulate and get sql server process
+"""
+
 import getopt
 import datetime
 import re
@@ -27,19 +31,25 @@ except ImportError:
 
 VERSION = "0.0.1"
 
-class processManagerError(Exception):
+class ProcessManagerError(Exception):
+    """
+    ProcessManager error class
+    """
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
 
-class configError(Exception):
+class ConfigError(Exception):
+    """
+    Config error class
+    """ 
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
 
-class process(object):
+class Process(object):
     def __init__(self, pid=0, user=None, host=None, db=None, state=None, time=0, info=None):
         self._pid = pid
         self._user = user
@@ -51,55 +61,100 @@ class process(object):
 
     @property
     def pid(self):
+        """
+        Get process pid
+        """
         return self._pid
     @pid.setter
     def pid(self, value):
+        """
+        Set process pid
+        """
         self._pid = value
 
     @property
     def user(self):
+        """
+        Get user running process
+        """
         return self._user
     @user.setter
     def user(self, value):
+        """
+        Set user running process
+        """
         self._user = value
 
     @property
     def host(self):
+        """
+        Get host
+        """
         return self._host
     @host.setter
     def host(self, value):
+        """
+        Set host
+        """
         self._host = value
 
     @property
     def db(self):
+        """
+        Get database name
+        """
         return self._db
     @db.setter
     def db(self, value):
+        """
+        Set database name
+        """
         self._db = value
 
     @property
     def state(self):
+        """
+        Get process state
+        """
         return self._state
     @state.setter
     def state(self, value):
+        """
+        Set process state
+        """
         self._state = value
 
     @property
     def time(self):
+        """
+        Get process running time
+        """
         return self._time
     @time.setter
     def time(self, value):
+        """
+        Set process running time
+        """
         self._time = value
 
     @property
     def info(self):
+        """
+        Get info
+        """
         return self._info
     @info.setter
     def info(self, value):
+        """
+        Set info
+        """
         self._info = value
 
 
-class processManager(object):
+class ProcessManager(object):
+    """
+    A class to manipulate and get sql server process
+    """
     MYSQL_BACKEND = "mysql"
     PGSQL_BACKEND = "pgsql"
     def __init__(self, backend=None, user="root", host="localhost", password=None, port=3306):
@@ -118,45 +173,78 @@ class processManager(object):
         
     @property
     def user(self):
+        """
+        Get user
+        """
         return self._user
     @user.setter
     def user(self, value):
+        """
+        Set user
+        """
         self._user = value
 
     @property
     def password(self):
+        """
+        Get password
+        """
         return self._password
 
     @password.setter
     def password(self, value):
+        """
+        Set password
+        """
         self._password = value
 
     @property
     def host(self):
+        """
+        Get hostname
+        """
         return self._host
 
     @host.setter
     def host(self, value):
+        """
+        Set hostname
+        """
         self._host = value
 
     @property
     def port(self):
+        """
+        Get port number
+        """
         return self._port
 
     @port.setter
     def port(self, value):
+        """
+        Set port number
+        """
         self._port = value
 
     @property
     def max_history(self):
+        """
+        Get max history buffer
+        """
         return self._max_history
 
     @max_history.setter
     def max_history(self, value):
+        """
+        Set max history buffer
+        """
         self._max_history = value
 
     @property
     def process(self):
+        """
+        Get process
+        """
         if len(self._filter) > 0:
             filtered_process = []
             for p in self._process:
@@ -206,10 +294,16 @@ class processManager(object):
 
     @property
     def version(self):
+        """
+        Get sql server version
+        """
         return self._version
 
     @property
     def uptime(self):
+        """
+        Get sql server uptime
+        """
         return self._uptime
 
     def order_by(self, key, asc=True):
@@ -234,6 +328,9 @@ class processManager(object):
         return self._filter.keys()
 
     def refresh(self):
+        """
+        Refresh sql information. Including uptime and the list of running process
+        """
         if self._backend == "mysql":
             self._process_mysql()
             self._uptime_mysql()
@@ -243,16 +340,22 @@ class processManager(object):
         self._process = self._history[pos]
 
     def connect(self):
+        """
+        Connect to the sql server
+        """
         if self._backend == "mysql":
             try:
                 db = MySQLdb.connect(host=self._host, user=self._user, passwd=self._password, port=self._port)
             except MySQLdb.OperationalError as e:
-                raise processManagerError("Impossible to connect to the database serveur")
+                raise ProcessManagerError("Impossible to connect to the database serveur")
             else:
                 #Create mysql object
                 self._sql = db.cursor()
 
     def close(self):
+        """
+        Close sql server connection
+        """
         self._sql.close()
 
     def kill(self, pid):
@@ -263,7 +366,7 @@ class processManager(object):
         try:
             self._sql.execute('SHOW FULL PROCESSLIST;')
         except:
-            raise processManagerError("Could not retieve process")
+            raise ProcessManagerError("Could not retieve process")
         all_process = []
         try:
             for row in self._sql.fetchall():
@@ -287,7 +390,7 @@ class processManager(object):
                     query = "None"
                 else:
                     query = row[7]
-                p = process(row[0], row[1], row[2].split(':')[0], dbName, state, row[5], query)
+                p = Process(row[0], row[1], row[2].split(':')[0], dbName, state, row[5], query)
                 all_process.append(p)
         except:
             pass
@@ -303,73 +406,22 @@ class processManager(object):
             self._sql.execute('select VERSION();')
             self._version = self._sql.fetchone()[0]
         except:
-            raise processManagerError("Could no retrive version")
+            raise ProcessManagerError("Could no retrive version")
 
     def _uptime_mysql(self):
         try:
             self._sql.execute('show status where Variable_name="Uptime"')
             self._uptime = str(datetime.timedelta(seconds = int(self._sql.fetchone()[1])))
         except:
-            raise processManagerError("Could no retrive uptime")
+            raise ProcessManagerError("Could no retrive uptime")
 
     def _kill_mysql(self, pid):
         try:
             self._sql.execute('kill ' + pid)
         except MySQLdb.OperationalError as e:
-            raise processManagerError("Impossible to kill pid : " + str(pid))
-            
-
-
-class processAgregator(object):
-    def __init__(self):
-        self._db = []
-        self.focus = None
-
-    def remove(self, pm_id):
-        self._db[pm_id].close()
-        del self._db[pm_id]
-
-    def append(self, db):
-        self._db.append(db)
-
-    def get(self, pm_id):
-        return self._db[pm_id]
-
-    def focus(self, pm_id):
-        self.current = pm_id
-    
-    def connect(self):
-        for db in self._db:
-            db.connect()
-
-    def refresh(self):
-        for db in self._db:
-            try:
-                db.refresh()
-            except:
-                pass
-
-    def close(self):
-        for db in self._db:
-            db.close()
-
-    def kill(self, process):
-        print "todo"
-
-    @property
-    def process(self):
-        if focus == None:
-            tmp_process = []
-            for db in self._db:
-                for p in db.process:
-                    tmp_process.append(p)
-            return tmp_process
-        else:
-            return self._db[self.focus]
-            
-
+            raise ProcessManagerError("Impossible to kill pid : " + str(pid))
    
-class config(object):
+class Config(object):
     """
     A class to read and write config
     """

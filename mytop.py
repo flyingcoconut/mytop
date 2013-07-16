@@ -40,7 +40,7 @@ except ImportError:
 
 VERSION = "0.0.2"
 
-def signal_handler(signal, frame):
+def signal_handler(sig, frame):
     """
     Get signals and exit
     """
@@ -126,8 +126,8 @@ def write_to_file(scr, pm):
         curses.noecho()
         curses.curs_set(0)
         scr.addstr(3, 0, 'File exist. Do you want to overwrite ? [y/N]')
-        r = scr.getch()
-        if r == ord("y"):
+        resp = scr.getch()
+        if resp == ord("y"):
             scr.refresh()
             try :
                 f = open(path, "w")
@@ -421,7 +421,7 @@ def main(scr, pm=None):
             elif key == ord("s"):
                 key = "state"
             elif key == ord("t"):
-                key = state
+                key = "time"
             elif key == ord("i"):
                 key = "info"
             elif key == ord("r"):
@@ -534,11 +534,11 @@ if __name__ == '__main__':
     #Initialise signal to catch SIGINT
     signal.signal(signal.SIGINT, signal_handler)
     #Call the parser function
-    options = arg_parser()
+    args = arg_parser()
     cf = sqltoplib.config(".mytop.conf")
     cf.parse()
     #Try to connect to the MySQL server
-    pm = sqltoplib.processManager(backend="mysql", host=options["host"], user=options["user"], password=options["password"], port=options["port"])
+    pm = sqltoplib.processManager(backend="mysql", host=args["host"], user=args["user"], password=args["password"], port=args["port"])
     try:
         pm.connect()
     except sqltoplib.processManagerError as error:
