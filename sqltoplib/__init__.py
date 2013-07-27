@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
-# Description : MySQL process viewer
+# Description : SQL process viewer
 #  
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ class ProcessManagerError(Exception):
     """
     def __init__(self, value):
         self.value = value
+        Exception.__init__(self, value)
     def __str__(self):
         return repr(self.value)
 
@@ -46,10 +47,14 @@ class ConfigError(Exception):
     """ 
     def __init__(self, value):
         self.value = value
+        Exception.__init__(self, value)
     def __str__(self):
         return repr(self.value)
 
 class Process(object):
+    """
+    A process class
+    """
     def __init__(self, pid=0, user=None, host=None, db=None, state=None, time=0, info=None):
         self._pid = pid
         self._user = user
@@ -157,6 +162,7 @@ class ProcessManager(object):
     """
     MYSQL_BACKEND = "mysql"
     PGSQL_BACKEND = "pgsql"
+    MONGODB = "mongodb"
     def __init__(self, backend=None, user="root", host="localhost", password=None, port=3306):
         self._backend = backend
         self._user = user
@@ -254,31 +260,31 @@ class ProcessManager(object):
                         try:
                             if re.match(self._filter[key], p.pid, flags=0):
                                 hits = hits + 1
-                        except:
+                        except re.error:
                             pass
                     elif key == "user":
                         try:
                             if re.match(self._filter[key], p.user, flags=0):
                                 hits = hits + 1
-                        except:
+                        except re.error:
                             pass
                     elif key == "host":
                         try:
                             if re.match(self._filter[key], p.host, flags=0):
                                 hits = hits + 1
-                        except:
+                        except re.error:
                             pass
                     elif key == "db":
                         try:
                             if re.match(self._filter[key], p.db, flags=0):
                                 hits = hits + 1
-                        except:
+                        except re.error:
                             pass
                     elif key == "state":
                         try:
                             if re.match(self._filter[key], p.state, flags=0):
                                 hits = hits + 1
-                        except:
+                        except re.error:
                             pass
                     elif key == "time":
                         if re.match(self._filter[key], p.time, flags=0):
@@ -307,24 +313,42 @@ class ProcessManager(object):
         return self._uptime
 
     def order_by(self, key, asc=True):
+        """
+        Order process by key
+        """
         print "todo"
 
     def add_filter(self, key, value):
+        """
+        Add a filter
+        """
         self._filter[key] = value
 
     def get_filter(self, key):
+        """
+        Get a filter value
+        """
         try:
             return self._filter[key]
         except KeyError:
             return ""
 
     def del_filter(self, key):
+        """
+        Delete a filter
+        """
         del self._filter[key]
 
     def del_all_filter(self):
+        """
+        Delete all filter
+        """
         self._filter.clear()
 
     def list_filter(self):
+        """
+        List all filter. Return a dict
+        """
         return self._filter.keys()
 
     def refresh(self):
@@ -337,6 +361,9 @@ class ProcessManager(object):
             self._version_mysql()
 
     def history(self, pos):
+        """
+        Get proces based on history position
+        """
         self._process = self._history[pos]
 
     def connect(self):
@@ -359,10 +386,16 @@ class ProcessManager(object):
         self._sql.close()
 
     def kill(self, pid):
+        """
+        Kill a sql process/threads
+        """
         if self._backend == "mysql":
             self._kill_mysql(pid)
 
     def _process_mysql(self):
+        """
+        Get a list of mysql threads
+        """
         try:
             self._sql.execute('SHOW FULL PROCESSLIST;')
         except:
@@ -373,9 +406,9 @@ class ProcessManager(object):
                 if len(str(row[5])) > 8 :
                     row[5] = "-"
                 if row[3] is None:
-                    dbName = "None"
+                    db_name = "None"
                 else:
-                    dbName = row[3]
+                    db_name = row[3]
                 if row[4].lower().strip() == 'query':
                     state = "Q"
                 elif row[4].lower().strip() == 'sleep':
@@ -390,7 +423,7 @@ class ProcessManager(object):
                     query = "None"
                 else:
                     query = row[7]
-                p = Process(row[0], row[1], row[2].split(':')[0], dbName, state, row[5], query)
+                p = Process(row[0], row[1], row[2].split(':')[0], db_name, state, row[5], query)
                 all_process.append(p)
         except:
             pass
@@ -402,6 +435,9 @@ class ProcessManager(object):
         self._process = all_process
 
     def _version_mysql(self):
+        """
+        Get mysql version
+        """
         try:
             self._sql.execute('select VERSION();')
             self._version = self._sql.fetchone()[0]
@@ -409,6 +445,9 @@ class ProcessManager(object):
             raise ProcessManagerError("Could no retrive version")
 
     def _uptime_mysql(self):
+        """
+        Get mysql uptime
+        """
         try:
             self._sql.execute('show status where Variable_name="Uptime"')
             self._uptime = str(datetime.timedelta(seconds = int(self._sql.fetchone()[1])))
@@ -416,6 +455,9 @@ class ProcessManager(object):
             raise ProcessManagerError("Could no retrive uptime")
 
     def _kill_mysql(self, pid):
+        """
+        Kil a mysql threads
+        """
         try:
             self._sql.execute('kill ' + pid)
         except MySQLdb.OperationalError as e:
@@ -425,40 +467,59 @@ class Config(object):
     """
     A class to read and write config
     """
+
     def __init__(self, path = None):
         self._path = path
-        self._options = {}
+        self._configs = {}
         self._comments = {}
 
     @property
     def path(self):
+        """
+        Get config path
+        """
         return self._path
 
     @path.setter
     def path(self, value):
+        """
+        Set config path
+        """
         self._path = value
 
-    def get_option(self, option):
+    def get_config(self, config):
+        """
+        Get a config value
+        """
         try:
-            return self._options[option]
+            return self._configs[config]
         except KeyError:
             return None
 
-    def set_option(self, option, value):
-        self._options[option] = value
+    def set_config(self, config, value):
+        """
+        Set a config value
+        """
+        self._configs[config] = value
 
     def write(self):
+        """
+        Write config to file
+        """
         print "todo"
 
     def parse(self):
-        self._options = {}
-        f = open(self._path)
-        for l in f.readlines():
-            line = l.strip()
+        """
+        Parse the configuration file
+        """
+        self._configs = {}
+        config_file = open(self._path)
+        for line in config_file.readlines():
+            line = line.strip()
             if line[0] == "#":
                 pass
             else:
                 line = line.split("=")
-                self._options[line[0].strip()] = line[1].strip()
-        f.close()
+                self._configs[line[0].strip()] = line[1].strip()
+        config_file.close()
 

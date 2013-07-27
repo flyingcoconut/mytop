@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
-# Description : MySQL process viewer
+# Description : SQL process viewer
 #  
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -62,6 +62,7 @@ Options:
   -h, --host=HOSTNAME       set hostname
   -p, --password=PASSWORD   set password
   -P, --port=PORT           set port number
+  -t, --type=DB TYPE        set the db type (mysql, mongodb, pgsql)
   -u, --user=USERNAME       set username
 
 Miscellaneous:
@@ -130,12 +131,12 @@ def write_to_file(scr, pm):
         if resp == ord("y"):
             scr.refresh()
             try :
-                f = open(path, "w")
-                f.write("Id;User;Host;Db;State;Time;Info\n")
-                for p in pm.process:
-                    line = str(p.pid) + ";" + p.user + ";" + p.host + ";" + p.db + ";" + p.state + ";" + str(p.time) + ";" + p.info
-                    f.write(line + "\n")
-                f.close()
+                output_file = open(path, "w")
+                output_file.write("Id;User;Host;Db;State;Time;Info\n")
+                for process in pm.process:
+                    line = str(process.pid) + ";" + process.user + ";" + process.host + ";" + process.db + ";" + process.state + ";" + str(process.time) + ";" + process.info
+                    output_file.write(line + "\n")
+                output_file.close()
             except IOError:
                 scr.move(3, 0)
                 scr.clrtoeol()
@@ -144,12 +145,12 @@ def write_to_file(scr, pm):
                 time.sleep(1)
     else:
         try :
-            f = open(path, "w")
-            f.write("Id;User;Host;Db;State;Time;Info\n")
-            for p in pm.process:
-                line = str(p.pid) + ";" + p.user + ";" + p.host + ";" + p.db + ";" + p.state + ";" + str(p.time) + ";" + p.info
-                f.write(line + "\n")
-            f.close()
+            output_file = open(path, "w")
+            output_file.write("Id;User;Host;Db;State;Time;Info\n")
+            for process in pm.process:
+                line = str(process.pid) + ";" + process.user + ";" + process.host + ";" + process.db + ";" + process.state + ";" + str(process.time) + ";" + process.info
+                output_file.write(line + "\n")
+            output_file.close()
         except IOError:
             scr.move(3, 0)
             scr.clrtoeol()
@@ -165,7 +166,7 @@ def add_connection(scr):
     """
     Create a new sql connection and return it
     """
-    new_pm = sqltoplib.processManager(backend="mysql")
+    new_pm = sqltoplib.ProcessManager(backend="mysql")
     scr.nodelay(0)
     curses.echo()
     scr.move(3, 0)
@@ -193,7 +194,10 @@ def add_connection(scr):
     value = scr.getstr()
     if value != "":
         new_pm.password = value
-    new_pm.connect()
+    try:
+        new_pm.connect()
+    except sqltoplib.ProcessManagerError:
+        pass
     scr.nodelay(1)
     curses.noecho()
     return new_pm
@@ -250,7 +254,7 @@ def display_details(scr, process):
     """
     Display all info about a process
     """
-    (maxY, maxX) = scr.getmaxyx()
+    (max_y, max_x) = scr.getmaxyx()
     scr.erase()
     scr.nodelay(0)
     curses.curs_set(0)
@@ -268,9 +272,15 @@ def display_details(scr, process):
     scr.addstr(17, 1, "Time", curses.A_BOLD)
     scr.addstr(18, 1, str(datetime.timedelta(seconds=process.time)))
     scr.addstr(20, 1, "Info", curses.A_BOLD)
-    info = sqlparse.format(process.info, reindent=True, keyword_case = "upper")
-    scr.addstr(22, 0, info)
-    scr.addstr(maxY-1, 0, "Press any key to quit")
+    try:
+        info = sqlparse.format(process.info, reindent=True, keyword_case = "upper")
+    except:
+        info = process.info
+    try:
+        scr.addstr(22, 0, info)
+    except _curses.error:
+        scr.addstr(22, 0, "Sql request is too long to display")
+    scr.addstr(max_y-1, 0, "Press any key to quit")
     scr.refresh()
     scr.getch()
     scr.nodelay(1)
@@ -281,7 +291,7 @@ def display_header(scr, pm, index, pms):
     Display header info
 
     """
-    (maxY, maxX) = scr.getmaxyx()
+    (max_y, max_x) = scr.getmaxyx()
     total_task = 0
     filtered_task = 0
     if len(pm._filter) > 0:
@@ -292,43 +302,43 @@ def display_header(scr, pm, index, pms):
     scr.addstr(0, 0, "Tasks : %s Total, %s filtered, Conn : %d / %d" % (str(total_task), str(filtered_task), index + 1, len(pms)))
     scr.addstr(1, 0, 'User : %s, Host : %s, Uptime : %s' % (pm.user[:10], pm.host[:15], pm.uptime))
     scr.addstr(2, 0, 'Port : %s, Version : %s' % (pm.port, pm.version))
-    scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(maxX-60)), curses.A_BOLD|curses.A_REVERSE)
+    scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
 
 def display_footer(scr, text):
     """
     Display footer mainly for action choice from user
     """ 
-    (maxY, maxX) = scr.getmaxyx()
-    scr.addstr(maxY-1, 0, '%s' % (text), curses.A_BOLD | curses.A_REVERSE)
-    scr.hline(maxY-1, len(text), " ", maxX, curses.A_BOLD | curses.A_REVERSE)
+    (max_y, max_x) = scr.getmaxyx()
+    scr.addstr(max_y-1, 0, '%s' % (text), curses.A_BOLD | curses.A_REVERSE)
+    scr.hline(max_y-1, len(text), " ", max_x, curses.A_BOLD | curses.A_REVERSE)
 
 def display_process(scr, pm=None, highlight=None):
     """
     Display process to screen
     """
-    (maxY, maxX) = scr.getmaxyx()
+    (max_y, max_x) = scr.getmaxyx()
     cnt = 5
     if highlight > len(pm.process):
         highlight = len(pm.process) - 1
-    for p in pm.process[:(maxY-6)]:
+    for process in pm.process[:(max_y-6)]:
         if highlight is not None:
             if highlight == (cnt - 5):
-                scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]), curses.A_REVERSE)
+                scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]), curses.A_REVERSE)
             else:
-                scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]))
+                scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]))
         else:
-            scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (p.pid, p.user[:10], p.host.split(':')[0][:15], p.db[:20], p.state, p.time, p.info[:44]))
+            scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]))
         cnt += 1
 
 def main(scr, pm=None):
     """
     The main function
     """
-    (maxY, maxX) = scr.getmaxyx()
+    (max_y, max_x) = scr.getmaxyx()
     curses.use_default_colors()
     scr.nodelay(1)
     scr.keypad(1)
-    maxInfo = (maxX-75)
+    maxInfo = (max_x-75)
     delay_counter = 1
     delay = 1
     paused = False
@@ -339,6 +349,10 @@ def main(scr, pm=None):
     pm_index = 0
     pms = []
     pms.append(pm)
+    config = sqltoplib.Config(".mytop.conf")
+    config.parse()
+    pm.max_history = int(config.get_config("max_history"))
+    
     while 1:
         key = scr.getch()
         if key == ord("a"):
@@ -455,7 +469,7 @@ def main(scr, pm=None):
             for pid in pids:
                 try:
                     pm.kill(pid)
-                except sqltoplib.processManagerError as e:
+                except sqltoplib.processManagerError:
                     scr.move(3, 0)
                     scr.clrtoeol()
                     scr.addstr(3, 0, '%s' % (e))
@@ -478,8 +492,8 @@ def main(scr, pm=None):
             display_process(scr, pms[pm_index], cursor_pos)
             scr.move(3, 0)
             scr.refresh()
-            t = time.time()
-            while time.time() - t < 0.5:
+            init_time = time.time()
+            while time.time() - init_time < 0.5:
                 key = scr.getch()
                 if key == curses.KEY_DOWN:
                     if cursor_pos < len(pms[pm_index].process) - 1:
@@ -501,12 +515,34 @@ def main(scr, pm=None):
                 delay_counter = delay
             else:
                 paused = True
+        elif key == ord("r"):
+            #key to remove connection
+                scr.nodelay(0)
+                curses.echo()
+                scr.move(3, 0)
+                scr.clrtoeol()
+                scr.addstr(3, 0, "Specify the connection to remove : ")
+                try:
+                    value = int(scr.getstr())
+                except ValueError:
+                    scr.move(3, 0)
+                    scr.clrtoeol()
+                    scr.addstr(3, 0, "Connection must be a number")
+                    time.sleep(1)
+                else:
+                    try:
+                        pms.pop(value - 1)
+                    except KeyError:
+                        scr.move(3, 0)
+                        scr.clrtoeol()
+                        scr.addstr(3, 0, "Connection %s does not exist" % (value))
+                                            
         if delay_counter  > delay:
             delay_counter = 0
             for p in pms: 
                 try:                 
                     p.refresh()
-                except sqltoplib.processManagerError:
+                except sqltoplib.ProcessManagerError:
                     pass
         elif paused:
             pass
@@ -518,7 +554,7 @@ def main(scr, pm=None):
         scr.erase()
         display_header(scr, pms[pm_index], pm_index, pms)
         display_process(scr, pms[pm_index], cursor_pos)
-        display_footer(scr, "[a]dd [d]elay [e]dit [f]ilter [i]nfo [k]ill [o]rder [p]aused [s]ats [w]rite [q]uit")
+        display_footer(scr, "[a]dd [d]elay [e]dit [f]ilter [i]nfo [k]ill [o]rder [p]aused [r]emove [s]ats [w]rite [q]uit")
         scr.move(3, 0)
         curses.curs_set(1)
         if paused or history:
@@ -535,15 +571,12 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal_handler)
     #Call the parser function
     args = arg_parser()
-    cf = sqltoplib.config(".mytop.conf")
-    cf.parse()
     #Try to connect to the MySQL server
-    pm = sqltoplib.processManager(backend="mysql", host=args["host"], user=args["user"], password=args["password"], port=args["port"])
+    pm = sqltoplib.ProcessManager(backend="mysql", host=args["host"], user=args["user"], password=args["password"], port=args["port"])
     try:
         pm.connect()
-    except sqltoplib.processManagerError as error:
+    except sqltoplib.ProcessManagerError:
         pass
-    pm.max_history = int(cf.get_option("max_history"))
     #Curses wrapper around the main function
     curses.wrapper(main, pm)
 
