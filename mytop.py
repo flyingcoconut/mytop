@@ -60,6 +60,7 @@ Example: mytop -u root -h localhost -p password
 
 Options:
   -h, --host=HOSTNAME       set hostname
+  -l, --list                list all type
   -p, --password=PASSWORD   set password
   -P, --port=PORT           set port number
   -t, --type=DB TYPE        set the db type (mysql, mongodb, pgsql)
@@ -76,7 +77,7 @@ def arg_parser():
     Function to parse command line arguments
     """
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "h:p:P:u:V", ["host=", "password=", "port=", "user=", "version", "help"])
+        opts, args = getopt.getopt(sys.argv[1:], "h:lp:P:t:u:V", ["host=", "list", "password=", "port=", "type=", "user=", "version", "help"])
     except getopt.GetoptError, err:
         # print help information and exit:
         show_usage()
@@ -85,15 +86,22 @@ def arg_parser():
     options = {}
     options["host"] = "localhost"
     options["password"] = None
-    options["port"] = 3306
-    options["user"] = "root"
+    options["port"] = 0
+    options["user"] = ""
+    options["type"] = None
     for o, a in opts:
         if o in ("-h", "--host"):
             options["host"] = a
+        elif o in ("-l", "--list"):
+            for backend in sqltoplib.DISPONIBLE_BACKEND:
+                print backend
+            sys.exit(0)
         elif o in ("-p", "--password"):
             options["password"] = a
         elif o in ("-P", "--port"):
             options["port"] = int(a)
+        elif o in ("-t", "--type"):
+            options["type"] = a
         elif o in ("-u", "--user"):
             options["user"] = a
         elif o in ("-V", "--version"):
@@ -106,9 +114,12 @@ def arg_parser():
         else:
             show_usage()
             sys.exit(1)
-
-    if options["password"] is None:
-        options["password"] = getpass.getpass()
+    if options["type"] is None:
+        print "no type specified"
+        sys.exit(1)
+    if options["type"] not in sqltoplib.DISPONIBLE_BACKEND:
+        print "is not a valid type"
+        sys.exit(1)
     return options
 
 def write_to_file(scr, pm):
@@ -542,7 +553,7 @@ def main(scr, pm=None):
             for p in pms: 
                 try:                 
                     p.refresh()
-                except sqltoplib.ProcessManagerError:
+                except sqltoplib.processmanager.ProcessManagerError:
                     pass
         elif paused:
             pass
@@ -572,10 +583,13 @@ if __name__ == '__main__':
     #Call the parser function
     args = arg_parser()
     #Try to connect to the MySQL server
-    pm = sqltoplib.ProcessManager(backend="mysql", host=args["host"], user=args["user"], password=args["password"], port=args["port"])
+    if args["type"] == "mysql":
+        pm = sqltoplib.mysql.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
+    elif args["type"] == "mongodb":
+        pm = sqltoplib.mongodb.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
     try:
         pm.connect()
-    except sqltoplib.ProcessManagerError:
+    except sqltoplib.processmanager.ProcessManagerError:
         pass
     #Curses wrapper around the main function
     curses.wrapper(main, pm)
