@@ -1,7 +1,6 @@
 #mytop#
-=====
 
-mytop is a console-based tool for monitoring and managing process on database server.
+mytop is a console-based tool for monitoring and managing process from different database server.
 It runs on most Unix systems (including Mac OS X) which have python and curses.
 It could possibly run on Windows.
 
@@ -16,17 +15,20 @@ Here is the list of disponible backend
 ###mysql###
 
 Status : stable
-Dependency : MySQLdb 
+
+Dependency : MySQLdb
 
 
 ###redisdb###
 
 Status : beta
+
 Dependency : redis-py
 
 
 ###mongodb###
 
 Status : beta
+
 Dependency : PyMongo
 
