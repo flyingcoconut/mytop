@@ -29,7 +29,7 @@ import process
 try: #Try to import MySQLdb library
     import redis
 except ImportError:
-     raise processmanager.ProcessManagerError("redis backend not disponible") 
+     raise processmanager.ProcessManagerError("redisdb backend not disponible")
 
 class ProcessManager(processmanager.ProcessManager):
     """
@@ -37,6 +37,7 @@ class ProcessManager(processmanager.ProcessManager):
     """
     def __init__(self, user="root", host="localhost", password=None, port=3306):
         processmanager.ProcessManager.__init__(self, user, host, password, port)
+        self.BACKEND = "redisdb"
         
     def refresh(self):
         """

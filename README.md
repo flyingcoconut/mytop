@@ -3,21 +3,21 @@
 mytop is a console-based tool for monitoring and managing process from different databases server.
 It is possible to monitor, filter, and kill process from different backend.
 It runs on most Unix systems (including Mac OS X) which have python and curses.
-It could possibly run on Windows.
 
 ![ScreenShot](https://raw.github.com/flyingcoconut/mytop/master/mytop.png)
 
 
 ##Features##
 
-- Delay beetween process refresh
+- Delay
 - Process history
 - Filter based on regexp
 - Multiple backend connexion at the same time
-- Dump a list of process to file
+- Dump to file
 - Pause
-- Get more details about a specific process
+- Get more details about specific process
 - Display stats from the backend
+- Fullscreen mode
 
 
 ##Backend##
@@ -45,6 +45,13 @@ Status : beta
 
 Dependency : PyMongo
 
+
+###linux###
+
+Status : beta
+
+Dependency : psutil
+
 ###mssql###
 
 Status : todo
@@ -56,6 +63,7 @@ Dependency : Unknown
 Status : todo
 
 Dependency : Psycopg
+
 
 
 Beware this software is in early alpha stage !

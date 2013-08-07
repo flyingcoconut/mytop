@@ -22,70 +22,43 @@ sqloptlib is a library to manipulate and get sql server process
 import getopt
 import datetime
 import re
+import platform
+import time
 
 import processmanager
 import process
 
-try: #Try to import mongodb library
+try: #Try to import psutil library
     import psutil
 except ImportError:
-     raise processmanager.ProcessManagerError("mongodb backend not disponible") 
+     raise processmanager.ProcessManagerError("linux backend not disponible") 
 
 class ProcessManager(processmanager.ProcessManager):
     """
     A class to manipulate and get sql server process
     """
-    def __init__(self, user="root", host="localhost", password=None, port=3306):
+    def __init__(self, user, host, password, port):
         processmanager.ProcessManager.__init__(self, user, host, password, port)
+        self.BACKEND = "linux"
         
     def refresh(self):
         """
         Refresh sql information. Including uptime and the list of running process
         """
-        try:
-            linux_process = psutil.get_process_list()
-        except:
-            raise processmanager.ProcessManagerError("Could not retieve process")
+        linux_process = psutil.get_process_list()
         all_process = []
-        try:
-            for row in mongodb_process[u"inprog"]:
-                if row[u"active"]:
-                    time = row[u"secs_running"]
-                else:
-                    time = 0
-                if row[u"op"] == "insert":
-                    state = "I"
-                elif row[u"op"] == "query":
-                    state = "Q"
-                elif row[u"op"] == "update":
-                    state = "U"
-                elif row[u"op"] == "remove":
-                    state = "R"
-                elif row[u"op"] == "getmore":
-                    state = "G"
-                elif row[u"op"] == "command":
-                    state = "C"
-                p = process.Process(row["opid"], "", row[u"client"].split(':')[0], row[u"ns"].split(".")[0], state, time, str(row[u"query"]))
-                all_process.append(p)
-        except all as e:
-            print e
-            pass
+        for pr in linux_process:
+            info = pr.name + " " + " ".join(pr.cmdline)
+            p = process.Process(pr.pid, pr.username, "localhost", "None", "s", pr.create_time, info)
+            all_process.append(p)
         if len(self._history) > self._max_history:
             self._history.pop(0)
             self._history.append(self._process)
         else:
             self._history.append(self._process)
         self._process = all_process
-        #try:
-        #    self._sql.execute('show status where Variable_name="Uptime"')
-        #    self._uptime = str(datetime.timedelta(seconds = int(self._sql.fetchone()[1])))
-        #except MySQLdb.OperationalError:
-        #    raise processmanager.ProcessManagerError("Could no retrive uptime")
-        #try:
-        #    self._sql.execute('select VERSION();')
-        #    self._version = self._sql.fetchone()[0]
-        #except:
-        #    raise processmanager.ProcessManagerError("Could no retrive version")
+        self._uptime = str(datetime.timedelta(seconds = int(time.time())))
+        self._version = platform.release()
 
     def connect(self):
         pass

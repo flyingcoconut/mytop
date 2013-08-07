@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-sqloptlib is a library to manipulate and get sql server process
+sqltoplib MySQL backend
 """
 import getopt
 import datetime
@@ -29,14 +29,15 @@ import process
 try: #Try to import MySQLdb library
     import MySQLdb
 except ImportError:
-     raise processmanager.ProcessManagerError("mongodb backend not disponible") 
+     raise processmanager.ProcessManagerError("mysql backend not disponible") 
 
 class ProcessManager(processmanager.ProcessManager):
     """
     A class to manipulate and get sql server process
     """
-    def __init__(self, user="root", host="localhost", password=None, port=3306):
+    def __init__(self, user, host, password, port):
         processmanager.ProcessManager.__init__(self, user, host, password, port)
+        self.BACKEND = "mysql"
         
     def refresh(self):
         """

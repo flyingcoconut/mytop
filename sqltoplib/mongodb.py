@@ -37,6 +37,7 @@ class ProcessManager(processmanager.ProcessManager):
     """
     def __init__(self, user="root", host="localhost", password=None, port=3306):
         processmanager.ProcessManager.__init__(self, user, host, password, port)
+        self.BACKEND = "mongodb"
         
     def refresh(self):
         """
@@ -76,16 +77,10 @@ class ProcessManager(processmanager.ProcessManager):
         else:
             self._history.append(self._process)
         self._process = all_process
-        #try:
-        #    self._sql.execute('show status where Variable_name="Uptime"')
-        #    self._uptime = str(datetime.timedelta(seconds = int(self._sql.fetchone()[1])))
-        #except MySQLdb.OperationalError:
-        #    raise processmanager.ProcessManagerError("Could no retrive uptime")
-        #try:
-        #    self._sql.execute('select VERSION();')
-        #    self._version = self._sql.fetchone()[0]
-        #except:
-        #    raise processmanager.ProcessManagerError("Could no retrive version")
+
+        mongodb_stats = self._sql.admin.command('serverStatus', 1)
+        self._uptime = str(datetime.timedelta(seconds = mongodb_stats["uptime"]))
+        self._version = mongodb_stats["version"]
 
     def connect(self):
         """
