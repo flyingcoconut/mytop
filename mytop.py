@@ -587,6 +587,8 @@ if __name__ == '__main__':
         pm = sqltoplib.mysql.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
     elif args["type"] == "mongodb":
         pm = sqltoplib.mongodb.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
+    elif args["type"] == "redisdb":
+        pm = sqltoplib.redisdb.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
     try:
         pm.connect()
     except sqltoplib.processmanager.ProcessManagerError:

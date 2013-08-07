@@ -38,9 +38,15 @@ except all as e:
     print e
     pass
 
+try:
+    import redisdb
+    DISPONIBLE_BACKEND.append("redisdb")
+except all as e:
+    pass
 
 MYSQL_BACKEND = "mysql"
 MONGODB_BACKEND = "mongodb"
+REDIS_BACKEND = "redis"
 
 def disponible_backend():
     backend_list
