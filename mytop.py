@@ -59,11 +59,11 @@ def show_help():
 Example: mytop -u root -h localhost -p password
 
 Options:
+  -b, --backend=BACKEND     set the backend (mysql, mongodb, pgsql)
   -h, --host=HOSTNAME       set hostname
-  -l, --list                list all type
+  -l, --list                list all backend
   -p, --password=PASSWORD   set password
   -P, --port=PORT           set port number
-  -t, --type=DB TYPE        set the db type (mysql, mongodb, pgsql)
   -u, --user=USERNAME       set username
 
 Miscellaneous:
@@ -77,7 +77,7 @@ def arg_parser():
     Function to parse command line arguments
     """
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "h:lp:P:t:u:V", ["host=", "list", "password=", "port=", "type=", "user=", "version", "help"])
+        opts, args = getopt.getopt(sys.argv[1:], "b:h:lp:P:u:V", ["backend=", "host=", "list", "password=", "port=", "user=", "version", "help"])
     except getopt.GetoptError, err:
         # print help information and exit:
         show_usage()
@@ -87,10 +87,12 @@ def arg_parser():
     options["host"] = "localhost"
     options["password"] = None
     options["port"] = 0
-    options["user"] = ""
-    options["type"] = None
+    options["user"] = None
+    options["backend"] = None
     for o, a in opts:
-        if o in ("-h", "--host"):
+        if o in ("-b", "--backend"):
+            options["backend"] = a
+        elif o in ("-h", "--host"):
             options["host"] = a
         elif o in ("-l", "--list"):
             for backend in sqltoplib.DISPONIBLE_BACKEND:
@@ -100,8 +102,6 @@ def arg_parser():
             options["password"] = a
         elif o in ("-P", "--port"):
             options["port"] = int(a)
-        elif o in ("-t", "--type"):
-            options["type"] = a
         elif o in ("-u", "--user"):
             options["user"] = a
         elif o in ("-V", "--version"):
@@ -114,10 +114,10 @@ def arg_parser():
         else:
             show_usage()
             sys.exit(1)
-    if options["type"] is None:
+    if options["backend"] is None:
         print "no type specified"
         sys.exit(1)
-    if options["type"] not in sqltoplib.DISPONIBLE_BACKEND:
+    if options["backend"] not in sqltoplib.DISPONIBLE_BACKEND:
         print "is not a valid type"
         sys.exit(1)
     return options
@@ -177,9 +177,23 @@ def add_connection(scr):
     """
     Create a new sql connection and return it
     """
-    new_pm = sqltoplib.ProcessManager(backend="mysql")
     scr.nodelay(0)
     curses.echo()
+    scr.move(3, 0)
+    scr.clrtoeol()
+    scr.addstr(3, 0, "backend : ")
+    value = scr.getstr()
+    if value != "":
+        if value in sqltoplib.DISPONIBLE_BACKEND:
+            backend = value
+        else:
+            scr.move(3, 0)
+            scr.clrtoeol()
+            scr.addstr(3, 0, 'Backend is not valid')
+            scr.refresh()
+            time.sleep(1)
+            return None
+    new_pm = sqltoplib.create_connection(backend=backend)
     scr.move(3, 0)
     scr.clrtoeol()
     scr.addstr(3, 0, "host : ")
@@ -311,17 +325,19 @@ def display_header(scr, pm, index, pms):
     else:
         total_task = len(pm.process)
     scr.addstr(0, 0, "Tasks : %s Total, %s filtered, Conn : %d / %d" % (str(total_task), str(filtered_task), index + 1, len(pms)))
-    scr.addstr(1, 0, 'User : %s, Host : %s, Uptime : %s' % (pm.user[:10], pm.host[:15], pm.uptime))
-    scr.addstr(2, 0, 'Port : %s, Version : %s' % (pm.port, pm.version))
+    scr.addstr(1, 0, 'User : %s, Host : %s, Port : %s, Uptime : %s' % (pm.user[:10], pm.host[:15], pm.port, pm.uptime))
+    scr.addstr(2, 0, 'backend : %s, Version : %s' % (pm.BACKEND, pm.version))
     scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
 
-def display_footer(scr, text):
+def display_footer(scr, text, text2):
     """
     Display footer mainly for action choice from user
     """ 
     (max_y, max_x) = scr.getmaxyx()
-    scr.addstr(max_y-1, 0, '%s' % (text), curses.A_BOLD | curses.A_REVERSE)
-    scr.hline(max_y-1, len(text), " ", max_x, curses.A_BOLD | curses.A_REVERSE)
+    scr.addstr(max_y-2, 0, '%s' % (text), curses.A_BOLD | curses.A_REVERSE)
+    scr.hline(max_y-2, len(text), " ", max_x, curses.A_BOLD | curses.A_REVERSE)
+    scr.addstr(max_y-1, 0, '%s' % (text2), curses.A_BOLD | curses.A_REVERSE)
+    scr.hline(max_y-1, len(text2), " ", max_x, curses.A_BOLD | curses.A_REVERSE)
 
 def display_process(scr, pm=None, highlight=None):
     """
@@ -565,7 +581,7 @@ def main(scr, pm=None):
         scr.erase()
         display_header(scr, pms[pm_index], pm_index, pms)
         display_process(scr, pms[pm_index], cursor_pos)
-        display_footer(scr, "[a]dd [d]elay [e]dit [f]ilter [i]nfo [k]ill [o]rder [p]aused [r]emove [s]ats [w]rite [q]uit")
+        display_footer(scr, "[a]dd  [d]elay  [e]dit  [f]ilter  [F]ullscreen  [i]nfo  [k]ill  [o]rder  [p]aused", "[r]emove  [s]ats  [w]rite  [q]uit")
         scr.move(3, 0)
         curses.curs_set(1)
         if paused or history:
@@ -583,10 +599,7 @@ if __name__ == '__main__':
     #Call the parser function
     args = arg_parser()
     #Try to connect to the MySQL server
-    if args["type"] == "mysql":
-        pm = sqltoplib.mysql.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
-    elif args["type"] == "mongodb":
-        pm = sqltoplib.mongodb.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
+    pm = sqltoplib.create_connection(backend=args["backend"], host=args["host"], user=args["user"], password=args["password"], port=args["port"])
     try:
         pm.connect()
     except sqltoplib.processmanager.ProcessManagerError:

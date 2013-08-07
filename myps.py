@@ -17,9 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import sys
-import time
 import signal
 import getopt
 import datetime
@@ -52,11 +50,11 @@ def show_help():
 Example: myps -u root -h localhost -p password --type mysql
 
 Options:
+  -b, --BACKEND=BACKEND     set the backend type (mysql, mongodb, pgsql)
   -h, --host=HOSTNAME       set hostname
   -l, --list                list all type
   -p, --password=PASSWORD   set password
   -P, --port=PORT           set port number
-  -t, --type=DB TYPE        set the db type (mysql, mongodb, pgsql)
   -u, --user=USERNAME       set username
 
 Miscellaneous:
@@ -70,7 +68,7 @@ def arg_parser():
     Function to parse command line arguments
     """
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "h:lp:P:t:u:V", ["host=", "list", "password=", "port=", "type=", "user=", "version", "help"])
+        opts, args = getopt.getopt(sys.argv[1:], "b:h:lp:P:u:V", ["backend=", "host=", "list", "password=", "port=", "user=", "version", "help"])
     except getopt.GetoptError, err:
         # print help information and exit:
         show_usage()
@@ -80,10 +78,12 @@ def arg_parser():
     options["host"] = "localhost"
     options["password"] = None
     options["port"] = 0
-    options["user"] = ""
-    options["type"] = None
+    options["user"] = None
+    options["backend"] = None
     for o, a in opts:
-        if o in ("-h", "--host"):
+        if o in ("-b", "--backend"):
+            options["backend"] = a
+        elif o in ("-h", "--host"):
             options["host"] = a
         elif o in ("-l", "--list"):
             for backend in sqltoplib.DISPONIBLE_BACKEND:
@@ -93,8 +93,6 @@ def arg_parser():
             options["password"] = a
         elif o in ("-P", "--port"):
             options["port"] = int(a)
-        elif o in ("-t", "--type"):
-            options["type"] = a
         elif o in ("-u", "--user"):
             options["user"] = a
         elif o in ("-V", "--version"):
@@ -107,19 +105,19 @@ def arg_parser():
         else:
             show_usage()
             sys.exit(1)
-    if options["type"] is None:
+    if options["backend"] is None:
         print "no type specified"
         sys.exit(1)
-    if options["type"] not in sqltoplib.DISPONIBLE_BACKEND:
+    if options["backend"] not in sqltoplib.DISPONIBLE_BACKEND:
         print "is not a valid type"
         sys.exit(1)
     return options
 
 def main(pm=None):
     pm.refresh()
-    print "%-10s %-11s %-15s %20s %-5s %-8s %-5s\n" % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info')
+    print "%-10s %-11s %-15s %-20s %-5s %-8s %-5s" % ('ID', 'USER', 'HOST', 'DB', 'STATE', 'TIME', 'INFO')
     for process in pm.process:
-        print "%-10s %-11s %-15s %20s %-5s %-8s %-5s" % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44])
+        print "%-10s %-11s %-15s %-20s %-5s %-8s %-5s" % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44])
 
 
 
@@ -129,12 +127,7 @@ if __name__ == '__main__':
     #Call the parser function
     args = arg_parser()
     #Try to connect to the MySQL server
-    if args["type"] == "mysql":
-        pm = sqltoplib.mysql.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
-    elif args["type"] == "mongodb":
-        pm = sqltoplib.mongodb.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
-    elif args["type"] == "redisdb":
-        pm = sqltoplib.redisdb.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
+    pm = sqltoplib.create_connection(backend=args["backend"], host=args["host"], user=args["user"], password=args["password"], port=args["port"])
     try:
         pm.connect()
     except sqltoplib.processmanager.ProcessManagerError as e:

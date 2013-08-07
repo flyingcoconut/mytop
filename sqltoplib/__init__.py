@@ -23,6 +23,8 @@ sqloptlib is a library to manipulate and get sql server process
 import getopt
 import datetime
 import re
+import pwd
+import os
 
 DISPONIBLE_BACKEND = []
 try:
@@ -38,20 +40,24 @@ except all as e:
     print e
     pass
 
+try:
+    import redisdb
+    DISPONIBLE_BACKEND.append("redisdb")
+except all as e:
+    pass
 
-MYSQL_BACKEND = "mysql"
-MONGODB_BACKEND = "mongodb"
+try:
+    import pgsql
+    DIPONIBLE_BACKEND.append("pgsql")
+except:
+    pass
 
-def disponible_backend():
-    backend_list
+try:
+    import linux
+    DISPONIBLE_BACKEND.append("linux")
+except all as e:
+    pass
 
-def create_connection(backend=None, user=None, host="localhost", password=None, port=None):
-    if backend == "mysql":
-        conn = mysql.MysqlProcessManager(user, host, password, port)
-        return conn
-    elif backend == "mongodb":
-        conn = mongodb.ProcessManager(user, host, password, port)
-        return conn
 
 class ConfigError(Exception):
     """
@@ -122,4 +128,26 @@ class Config(object):
                 line = line.split("=")
                 self._configs[line[0].strip()] = line[1].strip()
         config_file.close()
+
+def create_connection(backend=None, user=None, host="localhost", password=None, port=None):
+    if backend == "mysql":
+        if user is None:
+            user = "root"
+        elif host is None:
+            host = "localhost"
+        elif password is None:
+            password = ""
+        elif port is None:
+            port = 3306
+        conn = mysql.ProcessManager(user, host, password, port)
+        return conn
+    elif backend == "mongodb":
+        conn = mongodb.ProcessManager(user, host, password, port)
+        return conn
+    elif backend == "linux":
+        user = pwd.getpwuid(os.getuid())[0]
+        host = "localhost"
+        port = "None"
+        conn = linux.ProcessManager(user, host, password, port)
+        return conn
 
