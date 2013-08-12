@@ -599,12 +599,7 @@ if __name__ == '__main__':
     #Call the parser function
     args = arg_parser()
     #Try to connect to the MySQL server
-    if args["type"] == "mysql":
-        pm = sqltoplib.mysql.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
-    elif args["type"] == "mongodb":
-        pm = sqltoplib.mongodb.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
-    elif args["type"] == "redisdb":
-        pm = sqltoplib.redisdb.ProcessManager(host=args["host"], user=args["user"], password=args["password"], port=args["port"])
+    pm = sqltoplib.create_connection(backend=args["backend"], host=args["host"], user=args["user"], password=args["password"], port=args["port"])
     try:
         pm.connect()
     except sqltoplib.processmanager.ProcessManagerError:

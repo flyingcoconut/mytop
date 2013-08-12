@@ -49,7 +49,7 @@ class ProcessManager(processmanager.ProcessManager):
         all_process = []
         for pr in linux_process:
             info = pr.name + " " + " ".join(pr.cmdline)
-            p = process.Process(pr.pid, pr.username, "localhost", "None", "s", pr.create_time, info)
+            p = process.Process(pr.pid, pr.username, "localhost", "None", "s", int(pr.create_time), info)
             all_process.append(p)
         if len(self._history) > self._max_history:
             self._history.pop(0)
@@ -57,7 +57,9 @@ class ProcessManager(processmanager.ProcessManager):
         else:
             self._history.append(self._process)
         self._process = all_process
-        self._uptime = str(datetime.timedelta(seconds = int(time.time())))
+        f = open("/proc/uptime")
+        proc_uptime = float(f.read().split()[0])
+        self._uptime = str(datetime.timedelta(seconds = int(proc_uptime)))
         self._version = platform.release()
 
     def connect(self):
