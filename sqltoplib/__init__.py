@@ -57,6 +57,11 @@ try:
     DISPONIBLE_BACKEND.append("linux")
 except all as e:
     pass
+    
+try:
+    import dummy
+except all as e:
+    pass
 
 
 class ConfigError(Exception):
@@ -149,5 +154,8 @@ def create_connection(backend=None, user=None, host="localhost", password=None, 
         host = "localhost"
         port = "None"
         conn = linux.ProcessManager(user, host, password, port)
+        return conn
+    elif backend == "dummy":
+        conn = dummy.ProcessManager()
         return conn
 

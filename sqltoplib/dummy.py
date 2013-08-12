@@ -28,46 +28,24 @@ import time
 import processmanager
 import process
 
-try: #Try to import psutil library
-    import psutil
-except ImportError:
-     raise processmanager.ProcessManagerError("linux backend not disponible") 
-
 class ProcessManager(processmanager.ProcessManager):
     """
     A class to manipulate and get sql server process
     """
-    def __init__(self, user, host, password, port):
-        processmanager.ProcessManager.__init__(self, user, host, password, port)
-        self.BACKEND = "linux"
+    def __init__(self):
+        processmanager.ProcessManager.__init__(self, user="Unknown", host="Unknown", password="", port=0)
+        self.BACKEND = "Unknown"
+        
+        
         
     def refresh(self):
         """
         Refresh sql information. Including uptime and the list of running process
         """
-        linux_process = psutil.get_process_list()
-        all_process = []
-        for pr in linux_process:
-            info = pr.name + " " + " ".join(pr.cmdline)
-            p = process.Process(pr.pid, pr.username, "localhost", "None", "s", int(pr.create_time), info)
-            all_process.append(p)
-        if len(self._history) > self._max_history:
-            self._history.pop(0)
-            self._history.append(self._process)
-        else:
-            self._history.append(self._process)
-        self._process = all_process
-        self._uptime = str(datetime.timedelta(seconds = int(time.time())))
-        self._version = platform.release()
+        self._process = []
+        self._uptime = "Unknown"
+        self._version = "Unknown"
 
     def connect(self):
         pass
-
-    def kill(self, pid, signal):
-        process = psutil.Process(pid)
-        process.send_signal(signal)
-        
-    def set_nice(self, pid, nice):
-        process = psutil.Process(pid)
-        process.set_nice(nice)
    
