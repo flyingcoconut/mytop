@@ -65,13 +65,11 @@ class ProcessManager(processmanager.ProcessManager):
     def connect(self):
         pass
 
-    def kill(self, pid):
-        """
-        Kil a mysql threads
-        """
-        try:
-            self._sql.execute('kill ' + pid)
-        except MySQLdb.OperationalError as e:
-            raise processmanager.ProcessManagerError("Impossible to kill pid : " + str(pid))
+    def kill(self, pid, signal):
+        process = psutil.Process(pid)
+        process.send_signal(signal)
+        
+    def set_nice(self, pid, nice):
+        process = psutil.Process(pid)
+        process.set_nice(nice)
    
-

@@ -39,9 +39,6 @@ class ProcessManager(object):
     A base class to manipulate and get sql server process
     """
     def __init__(self, user="root", host="localhost", password=None, port=None):
-        import getopt
-        import datetime
-        import re
         self._user = user
         self._host = host
         self._password = password
@@ -250,10 +247,3 @@ class ProcessManager(object):
         Close sql server connection
         """
         self._sql.close()
-
-    def kill(self, pid):
-        """
-        Kill a sql process/threads
-        """
-        pass
-

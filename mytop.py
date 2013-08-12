@@ -114,10 +114,8 @@ def arg_parser():
         else:
             show_usage()
             sys.exit(1)
-    if options["backend"] is None:
-        print "no type specified"
-        sys.exit(1)
-    if options["backend"] not in sqltoplib.DISPONIBLE_BACKEND:
+
+    if options["backend"] not in sqltoplib.DISPONIBLE_BACKEND and options["backend"] is not None:
         print "is not a valid type"
         sys.exit(1)
     return options
@@ -193,32 +191,91 @@ def add_connection(scr):
             scr.refresh()
             time.sleep(1)
             return None
-    new_pm = sqltoplib.create_connection(backend=backend)
-    scr.move(3, 0)
-    scr.clrtoeol()
-    scr.addstr(3, 0, "host : ")
-    value = scr.getstr()
-    if value != "":
-        new_pm.host = value
-    scr.move(3, 0)
-    scr.clrtoeol()
-    scr.addstr(3, 0, "user : ")
-    value = scr.getstr()
-    if value != "":
-        new_pm.user = value
-    scr.move(3, 0)
-    scr.clrtoeol()
-    scr.addstr(3, 0, "port : ")
-    value = scr.getstr()
-    if value != "":
-        new_pm.port = int(value)
-    scr.move(3, 0)
-    scr.clrtoeol()
-    curses.noecho()
-    scr.addstr(3, 0, "password : ")
-    value = scr.getstr()
-    if value != "":
-        new_pm.password = value
+    #new_pm = sqltoplib.create_connection(backend=backend)
+    if backend == "mysql":
+        scr.move(3, 0)
+        scr.clrtoeol()
+        scr.addstr(3, 0, "host [localhost] : ")
+        value = scr.getstr()
+        if value is "":
+            host = "localhost"
+        else:
+            host = value
+        scr.move(3, 0)
+        scr.clrtoeol()
+        scr.addstr(3, 0, "user [root] : ")
+        value = scr.getstr()
+        if value is "":
+            user = "root"
+        else:
+            user = value
+        scr.move(3, 0)
+        scr.clrtoeol()
+        scr.addstr(3, 0, "port [3306] : ")
+        value = scr.getstr()
+        if value is "":
+            port  = 3306
+        else:
+            port = int(value)
+        scr.move(3, 0)
+        scr.clrtoeol()
+        curses.noecho()
+        scr.addstr(3, 0, "password : ")
+        value = scr.getstr()
+        password = value
+        new_pm = sqltoplib.create_connection(backend=backend, host=host, user=user, port=port, password=password)
+    elif backend == "redisdb":
+        scr.move(3, 0)
+        scr.clrtoeol()
+        scr.addstr(3, 0, "host [localhost] : ")
+        value = scr.getstr()
+        if value is "":
+            host = "localhost"
+        else:
+            host = value
+        scr.move(3, 0)
+        scr.clrtoeol()
+        scr.addstr(3, 0, "port [6379] : ")
+        value = scr.getstr()
+        if value is "":
+            port  = 6379
+        else:
+            port = int(value)
+        scr.move(3, 0)
+        scr.clrtoeol()
+        curses.noecho()
+        scr.addstr(3, 0, "password : ")
+        value = scr.getstr()
+        password = value
+        new_pm = sqltoplib.create_connection(backend=backend, host=host, port=port, password=password)
+    elif backend == "linux":
+        new_pm = sqltoplib.create_connection(backend=backend)
+    else:
+        scr.move(3, 0)
+        scr.clrtoeol()
+        scr.addstr(3, 0, "host [localhost] : ")
+        value = scr.getstr()
+        if value is "":
+            host = "localhost"
+        else:
+            host = value
+        scr.move(3, 0)
+        scr.clrtoeol()
+        scr.addstr(3, 0, "user : ")
+        value = scr.getstr()
+        user = value
+        scr.move(3, 0)
+        scr.clrtoeol()
+        scr.addstr(3, 0, "port : ")
+        value = scr.getstr()
+        port = int(value)
+        scr.move(3, 0)
+        scr.clrtoeol()
+        curses.noecho()
+        scr.addstr(3, 0, "password : ")
+        value = scr.getstr()
+        password = value
+        new_pm = sqltoplib.create_connection(backend=backend, host=host, user=user, port=port, password=password)
     try:
         new_pm.connect()
     except sqltoplib.ProcessManagerError:
@@ -226,6 +283,42 @@ def add_connection(scr):
     scr.nodelay(1)
     curses.noecho()
     return new_pm
+    
+def help(scr):
+    """
+    Display help
+    """
+    help_text = """
+ Keyboard shortcut
+ 
+ [a]dd          Add a new connection
+ [d]elay        Modify delay between refresh
+ [e]dit         Edit current connection
+ [E]xtension    Display extended functionality  
+ [f]ilter       Filter process
+ [F]ullscreen   Display in fullscreen mode
+ [i]nfo         Get complete info on process
+ [o]rder        Order process
+ [p]aused       Pause
+ [r]emove       Remove current connection
+ [s]tats        Get complete stats about current connection
+ [w]rite        Dump process to a csv file
+ [h]elp         Display this help 
+ [q]uit         Quit
+ 
+ Use up and down arrow to select process
+ Use left and right arrow to navigate history
+    """
+    (max_y, max_x) = scr.getmaxyx()
+    scr.erase()
+    scr.nodelay(0)
+    curses.noecho()
+    scr.addstr(1, 0, help_text)
+    scr.addstr(max_y - 1, 1, "Press any key to quit")
+    scr.getch()
+    scr.nodelay(1)
+    curses.noecho()
+    
 
 def edit_connection(scr, pm):
     """
@@ -311,56 +404,84 @@ def display_details(scr, process):
     scr.nodelay(1)
     curses.curs_set(1)
 
-def display_header(scr, pm, index, pms):
+def display_header(scr, pm, index, pms, fullscreen=False):
     """
     Display header info
 
     """
     (max_y, max_x) = scr.getmaxyx()
-    total_task = 0
-    filtered_task = 0
-    if len(pm._filter) > 0:
-        total_task = len(pm._process)
-        filtered_task = len(pm.process)
+    if not fullscreen:
+        total_task = 0
+        filtered_task = 0
+        if len(pm._filter) > 0:
+            total_task = len(pm._process)
+            filtered_task = len(pm.process)
+        else:
+            total_task = len(pm.process)
+        scr.addstr(0, 0, "Tasks : %s Total, %s filtered, Conn : %d / %d" % (str(total_task), str(filtered_task), index + 1, len(pms)))
+        scr.addstr(1, 0, 'User : %s, Host : %s, Port : %s, Uptime : %s' % (pm.user[:10], pm.host[:15], pm.port, pm.uptime))
+        scr.addstr(2, 0, 'backend : %s, Version : %s' % (pm.BACKEND, pm.version))
+        if pm.BACKEND == "linux":
+            scr.addstr(4, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
+        else:
+            scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
     else:
-        total_task = len(pm.process)
-    scr.addstr(0, 0, "Tasks : %s Total, %s filtered, Conn : %d / %d" % (str(total_task), str(filtered_task), index + 1, len(pms)))
-    scr.addstr(1, 0, 'User : %s, Host : %s, Port : %s, Uptime : %s' % (pm.user[:10], pm.host[:15], pm.port, pm.uptime))
-    scr.addstr(2, 0, 'backend : %s, Version : %s' % (pm.BACKEND, pm.version))
-    scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
+        if pm.BACKEND == "linux":
+            scr.addstr(0, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
+        else:
+            scr.addstr(0, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
 
-def display_footer(scr, text, text2):
+def display_footer(scr, text):
     """
     Display footer mainly for action choice from user
     """ 
     (max_y, max_x) = scr.getmaxyx()
-    scr.addstr(max_y-2, 0, '%s' % (text), curses.A_BOLD | curses.A_REVERSE)
-    scr.hline(max_y-2, len(text), " ", max_x, curses.A_BOLD | curses.A_REVERSE)
-    scr.addstr(max_y-1, 0, '%s' % (text2), curses.A_BOLD | curses.A_REVERSE)
-    scr.hline(max_y-1, len(text2), " ", max_x, curses.A_BOLD | curses.A_REVERSE)
+    scr.addstr(max_y-1, 0, '%s' % (text), curses.A_BOLD | curses.A_REVERSE)
+    scr.hline(max_y-1, len(text), " ", max_x, curses.A_BOLD | curses.A_REVERSE)
 
-def display_process(scr, pm=None, highlight=None):
+def display_process(scr, pm=None, highlight=None, fullscreen=False):
     """
     Display process to screen
     """
     (max_y, max_x) = scr.getmaxyx()
-    cnt = 5
+    if fullscreen:
+       cnt = 1
+    else:
+       cnt = 5
     if highlight > len(pm.process):
         highlight = len(pm.process) - 1
     for process in pm.process[:(max_y-6)]:
         if highlight is not None:
             if highlight == (cnt - 5):
-                scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]), curses.A_REVERSE)
+                if pm.BACKEND == "linux":
+                    scr.addstr(cnt, 0, '%-10s %-11s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.state, process.time, process.info[:44]), curses.A_REVERSE)
+                else:
+                    scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]), curses.A_REVERSE)
+            else:
+                if pm.BACKEND == "linux":
+                    scr.addstr(cnt, 0, '%-10s %-11s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.state, process.time, process.info[:44]))
+                else:
+                    scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]))
+        else:
+            if pm.BACKEND == "linux":
+                scr.addstr(cnt, 0, '%-10s %-11s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.state, process.time, process.info[:44]))
             else:
                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]))
-        else:
-            scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]))
         cnt += 1
 
-def main(scr, pm=None):
+def main(scr, args):
     """
     The main function
     """
+    #Try to connect to the database server
+    if args["backend"] is not None:
+        pm = sqltoplib.create_connection(backend=args["backend"], host=args["host"], user=args["user"], password=args["password"], port=args["port"])
+        try:
+            pm.connect()
+        except sqltoplib.processmanager.ProcessManagerError:
+            pass
+    else:
+        pm = sqltoplib.create_connection(backend="dummy")
     (max_y, max_x) = scr.getmaxyx()
     curses.use_default_colors()
     scr.nodelay(1)
@@ -376,17 +497,28 @@ def main(scr, pm=None):
     pm_index = 0
     pms = []
     pms.append(pm)
-    config = sqltoplib.Config(".mytop.conf")
-    config.parse()
-    pm.max_history = int(config.get_config("max_history"))
+    fullscreen = False
+    #config = sqltoplib.Config(".mytop.conf")
+    #config.parse()
+    #pm.max_history = int(config.get_config("max_history"))
     
     while 1:
         key = scr.getch()
         if key == ord("a"):
             #Key for adding a sql connection
             new_pm = add_connection(scr)
-            pms.append(new_pm)
-        if key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"), ord("6"), ord("7"), ord("8"), ord("9")]:
+            if new_pm is not None:
+                if pm.BACKEND == "Unknown":
+                    pms.remove(pm)
+                pms.append(new_pm)
+        elif key == ord("F"):
+            if fullscreen:
+                fullscreen = False
+                curses.curs_set(1)
+            else:
+                fullscreen = True
+                curses.curs_set(0)
+        elif key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"), ord("6"), ord("7"), ord("8"), ord("9")]:
            #All keyboard key number are used to select wich connection to display
            index = int(chr(key)) - 1
            if index <= len(pms) - 1:
@@ -396,9 +528,11 @@ def main(scr, pm=None):
                scr.clrtoeol()
                scr.addstr(3, 0, "Connection %d does not exist" % (index))
                time.sleep(1)
-        if key == ord("q"):
+        elif key == ord("q"):
             #Key to exit mytop
             sys.exit(0)
+        elif key == ord("h"):
+            help(scr)
         elif key == curses.KEY_LEFT or key == curses.KEY_RIGHT:
             #Key to navigate history
             if len(pms[pm_index]._history) == 0:
@@ -516,7 +650,10 @@ def main(scr, pm=None):
             if key == curses.KEY_UP:
                 if cursor_pos > 0:
                     cursor_pos = cursor_pos - 1
-            display_process(scr, pms[pm_index], cursor_pos)
+            if fullscreen:
+                display_process(scr, pms[pm_index], cursor_pos, fullscreen=True)
+            else:
+                display_process(scr, pms[pm_index], cursor_pos)
             scr.move(3, 0)
             scr.refresh()
             init_time = time.time()
@@ -528,7 +665,10 @@ def main(scr, pm=None):
                 elif key == curses.KEY_UP:
                     if cursor_pos > 0:
                         cursor_pos = cursor_pos - 1
-                display_process(scr, pms[pm_index], cursor_pos)
+                if fullscreen:
+                    display_process(scr, pms[pm_index], cursor_pos, fullscreen=True)
+                else:
+                    display_process(scr, pms[pm_index], cursor_pos)
                 scr.move(3, 0)
                 scr.refresh()
         elif key == ord("i"):
@@ -579,11 +719,15 @@ def main(scr, pm=None):
             delay_counter = delay_counter + 0.1
         
         scr.erase()
-        display_header(scr, pms[pm_index], pm_index, pms)
-        display_process(scr, pms[pm_index], cursor_pos)
-        display_footer(scr, "[a]dd  [d]elay  [e]dit  [f]ilter  [F]ullscreen  [i]nfo  [k]ill  [o]rder  [p]aused", "[r]emove  [s]ats  [w]rite  [q]uit")
-        scr.move(3, 0)
-        curses.curs_set(1)
+        if fullscreen:
+            display_header(scr, pms[pm_index], pm_index, pms, fullscreen=True)
+            display_process(scr, pms[pm_index], cursor_pos, fullscreen=True)
+        else:
+            display_header(scr, pms[pm_index], pm_index, pms)
+            display_process(scr, pms[pm_index], cursor_pos)
+            display_footer(scr, "[a]dd [d]elay [f]ilter [i]nfo [o]rder [p]aused [r]emove [w]rite [h]elp [q]uit")
+            scr.move(3, 0)
+        #curses.curs_set(1)
         if paused or history:
             curses.curs_set(0)
             scr.addstr(3, 0, 'Pause', curses.A_BLINK)
@@ -592,19 +736,12 @@ def main(scr, pm=None):
             scr.addstr(3, 0, 'History (%s / %s)' % (str(history_pos), str(len(pm._history) - 1)), curses.A_BLINK)
         time.sleep(0.1)
 
-
 if __name__ == '__main__':
     #Initialise signal to catch SIGINT
     signal.signal(signal.SIGINT, signal_handler)
     #Call the parser function
     args = arg_parser()
-    #Try to connect to the MySQL server
-    pm = sqltoplib.create_connection(backend=args["backend"], host=args["host"], user=args["user"], password=args["password"], port=args["port"])
-    try:
-        pm.connect()
-    except sqltoplib.processmanager.ProcessManagerError:
-        pass
     #Curses wrapper around the main function
-    curses.wrapper(main, pm)
+    curses.wrapper(main, args)
 
 
