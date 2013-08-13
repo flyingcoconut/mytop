@@ -50,17 +50,22 @@ def show_usage():
     """
     Print a usage message
     """
-    print """Usage: mytop [OPTION]... -u [USER]...
+    print """Usage: mytop -b [BACKEND] -u [USER] -p [PASSWORD] ...
     """
 
 def show_help():
-    """Print a help message"""
-    print """MySQL process viewer
+    """
+    Print a help message
+    """
+    print """Process viewer
 Example: mytop -u root -h localhost -p password
 
 Options:
   -b, --backend=BACKEND     set the backend (mysql, mongodb, pgsql)
+  -c, --config=PATH         set config file path
+  -F                        fullscreen mode
   -h, --host=HOSTNAME       set hostname
+  -H, --history=LENGTH      set history length (eg. 10)
   -l, --list                list all backend
   -p, --password=PASSWORD   set password
   -P, --port=PORT           set port number
@@ -77,7 +82,7 @@ def arg_parser():
     Function to parse command line arguments
     """
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "b:h:lp:P:u:V", ["backend=", "host=", "list", "password=", "port=", "user=", "version", "help"])
+        opts, args = getopt.getopt(sys.argv[1:], "b:Fh:lp:P:u:V", ["backend=", "host=", "list", "password=", "port=", "user=", "version", "help"])
     except getopt.GetoptError, err:
         # print help information and exit:
         show_usage()
@@ -89,9 +94,12 @@ def arg_parser():
     options["port"] = 0
     options["user"] = None
     options["backend"] = None
+    options["fullscreen"] = False
     for o, a in opts:
         if o in ("-b", "--backend"):
             options["backend"] = a
+        elif o == "-F":
+        	   options["fullscreen"] = True
         elif o in ("-h", "--host"):
             options["host"] = a
         elif o in ("-l", "--list"):
@@ -120,7 +128,7 @@ def arg_parser():
         sys.exit(1)
     return options
 
-def write_to_file(scr, pm):
+def write_to_file(scr, pm, fullscreen=False):
     """
     Write process to file in a csv format
     """
@@ -171,114 +179,118 @@ def write_to_file(scr, pm):
     scr.nodelay(1)
     scr.refresh()
 
-def add_connection(scr):
+def add_connection(scr, fullscreen=False):
     """
     Create a new sql connection and return it
     """
+    (max_y, max_x) = scr.getmaxyx()
+    if fullscreen:
+    	 ques_pos = max_y - 1
+    else:
+    	 ques_pos = 3
     scr.nodelay(0)
     curses.echo()
-    scr.move(3, 0)
+    scr.move(ques_pos, 0)
     scr.clrtoeol()
-    scr.addstr(3, 0, "backend : ")
+    scr.addstr(ques_pos, 0, "backend : ")
     value = scr.getstr()
     if value != "":
         if value in sqltoplib.DISPONIBLE_BACKEND:
             backend = value
         else:
-            scr.move(3, 0)
+            scr.move(ques_pos, 0)
             scr.clrtoeol()
-            scr.addstr(3, 0, 'Backend is not valid')
+            scr.addstr(ques_pos, 0, 'Backend is not valid')
             scr.refresh()
             time.sleep(1)
             return None
-    #new_pm = sqltoplib.create_connection(backend=backend)
     if backend == "mysql":
-        scr.move(3, 0)
+        scr.move(ques_pos, 0)
         scr.clrtoeol()
-        scr.addstr(3, 0, "host [localhost] : ")
+        scr.addstr(ques_pos, 0, "host [localhost] : ")
         value = scr.getstr()
         if value is "":
             host = "localhost"
         else:
             host = value
-        scr.move(3, 0)
+        scr.move(ques_pos, 0)
         scr.clrtoeol()
-        scr.addstr(3, 0, "user [root] : ")
+        scr.addstr(ques_pos, 0, "user [root] : ")
         value = scr.getstr()
         if value is "":
             user = "root"
         else:
             user = value
-        scr.move(3, 0)
+        scr.move(ques_pos, 0)
         scr.clrtoeol()
-        scr.addstr(3, 0, "port [3306] : ")
+        scr.addstr(ques_pos, 0, "port [3306] : ")
         value = scr.getstr()
         if value is "":
             port  = 3306
         else:
             port = int(value)
-        scr.move(3, 0)
+        scr.move(ques_pos, 0)
         scr.clrtoeol()
         curses.noecho()
-        scr.addstr(3, 0, "password : ")
+        scr.addstr(ques_pos, 0, "password : ")
         value = scr.getstr()
         password = value
         new_pm = sqltoplib.create_connection(backend=backend, host=host, user=user, port=port, password=password)
     elif backend == "redisdb":
-        scr.move(3, 0)
+        scr.move(ques_pos, 0)
         scr.clrtoeol()
-        scr.addstr(3, 0, "host [localhost] : ")
+        scr.addstr(ques_pos, 0, "host [localhost] : ")
         value = scr.getstr()
         if value is "":
             host = "localhost"
         else:
             host = value
-        scr.move(3, 0)
+        scr.move(ques_pos, 0)
         scr.clrtoeol()
-        scr.addstr(3, 0, "port [6379] : ")
+        scr.addstr(ques_pos, 0, "port [6379] : ")
         value = scr.getstr()
         if value is "":
             port  = 6379
         else:
             port = int(value)
-        scr.move(3, 0)
+        scr.move(ques_pos, 0)
         scr.clrtoeol()
         curses.noecho()
-        scr.addstr(3, 0, "password : ")
+        scr.addstr(ques_pos, 0, "password : ")
         value = scr.getstr()
         password = value
         new_pm = sqltoplib.create_connection(backend=backend, host=host, port=port, password=password)
     elif backend == "linux":
         new_pm = sqltoplib.create_connection(backend=backend)
     else:
-        scr.move(3, 0)
+        scr.move(ques_pos, 0)
         scr.clrtoeol()
-        scr.addstr(3, 0, "host [localhost] : ")
+        scr.addstr(ques_pos, 0, "host [localhost] : ")
         value = scr.getstr()
         if value is "":
             host = "localhost"
         else:
             host = value
-        scr.move(3, 0)
+        scr.move(ques_pos, 0)
         scr.clrtoeol()
-        scr.addstr(3, 0, "user : ")
+        scr.addstr(ques_pos, 0, "user : ")
         value = scr.getstr()
         user = value
-        scr.move(3, 0)
+        scr.move(ques_pos, 0)
         scr.clrtoeol()
-        scr.addstr(3, 0, "port : ")
+        scr.addstr(ques_pos, 0, "port : ")
         value = scr.getstr()
         port = int(value)
-        scr.move(3, 0)
+        scr.move(ques_pos, 0)
         scr.clrtoeol()
         curses.noecho()
-        scr.addstr(3, 0, "password : ")
+        scr.addstr(ques_pos, 0, "password : ")
         value = scr.getstr()
         password = value
         new_pm = sqltoplib.create_connection(backend=backend, host=host, user=user, port=port, password=password)
     try:
         new_pm.connect()
-    except sqltoplib.ProcessManagerError:
+    except sqltoplib.processmanager.ProcessManagerError:
         pass
     scr.nodelay(1)
     curses.noecho()
@@ -446,11 +458,13 @@ def display_process(scr, pm=None, highlight=None, fullscreen=False):
     (max_y, max_x) = scr.getmaxyx()
     if fullscreen:
        cnt = 1
+       max_process = max_y - 2
     else:
        cnt = 5
+       max_process = max_y-6
     if highlight > len(pm.process):
         highlight = len(pm.process) - 1
-    for process in pm.process[:(max_y-6)]:
+    for process in pm.process[:(max_process)]:
         if highlight is not None:
             if highlight == (cnt - 5):
                 if pm.BACKEND == "linux":
@@ -483,7 +497,10 @@ def main(scr, args):
     else:
         pm = sqltoplib.create_connection(backend="dummy")
     (max_y, max_x) = scr.getmaxyx()
-    curses.use_default_colors()
+    try:
+    	 curses.use_default_colors()
+    except curses.error:
+    	 pass
     scr.nodelay(1)
     scr.keypad(1)
     maxInfo = (max_x-75)
@@ -497,19 +514,16 @@ def main(scr, args):
     pm_index = 0
     pms = []
     pms.append(pm)
-    fullscreen = False
-    #config = sqltoplib.Config(".mytop.conf")
-    #config.parse()
-    #pm.max_history = int(config.get_config("max_history"))
+    fullscreen = args["fullscreen"]
     
     while 1:
         key = scr.getch()
         if key == ord("a"):
             #Key for adding a sql connection
-            new_pm = add_connection(scr)
+            new_pm = add_connection(scr, fullscreen=fullscreen)
             if new_pm is not None:
-                if pm.BACKEND == "Unknown":
-                    pms.remove(pm)
+                if pms[pm_index].BACKEND == "Unknown":
+                    pms.remove(pms[pm_index])
                 pms.append(new_pm)
         elif key == ord("F"):
             if fullscreen:
@@ -684,26 +698,13 @@ def main(scr, args):
                 paused = True
         elif key == ord("r"):
             #key to remove connection
-                scr.nodelay(0)
-                curses.echo()
-                scr.move(3, 0)
-                scr.clrtoeol()
-                scr.addstr(3, 0, "Specify the connection to remove : ")
-                try:
-                    value = int(scr.getstr())
-                except ValueError:
-                    scr.move(3, 0)
-                    scr.clrtoeol()
-                    scr.addstr(3, 0, "Connection must be a number")
-                    time.sleep(1)
-                else:
-                    try:
-                        pms.pop(value - 1)
-                    except KeyError:
-                        scr.move(3, 0)
-                        scr.clrtoeol()
-                        scr.addstr(3, 0, "Connection %s does not exist" % (value))
-                                            
+            pms.remove(pms[pm_index]) 
+            if pm_index > len(pms) - 1 :
+            	 pm_index = len(pms) - 1
+            if len(pms) == 0:
+            	 dummy_pm = sqltoplib.create_connection(backend="dummy")
+            	 pms.append(dummy_pm)
+            	 pm_index = 0
         if delay_counter  > delay:
             delay_counter = 0
             for p in pms: 
