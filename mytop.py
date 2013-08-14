@@ -179,6 +179,68 @@ def write_to_file(scr, pm, fullscreen=False):
     scr.nodelay(1)
     scr.refresh()
 
+def change_delay(scr, fullscreen=False):
+    (max_y, max_x) = scr.getmaxyx()
+    if fullscreen:
+        ques_pos = max_y - 1
+    else:
+        ques_pos = 3
+    scr.addstr(ques_pos, 0, 'Specify delay in second : ')
+    scr.nodelay(0)
+    curses.echo()
+    scr.refresh()
+    try:
+        delay = int(scr.getstr())
+    except ValueError:
+        scr.move(ques_pos, 0)
+        scr.clrtoeol()
+        scr.addstr(ques_pos, 0, 'Bad delay value')
+        scr.refresh()
+        time.sleep(1)
+        delay = None
+    curses.noecho()
+    scr.nodelay(1)
+    scr.refresh()
+    scr.erase()
+    return delay
+
+def ask(scr, fullscreen=False):
+    (max_y, max_x) = scr.getmaxyx()
+    if fullscreen:
+    	 ques_pos = max_y - 1
+    else:
+    	 ques_pos = 3
+    scr.nodelay(0)
+    curses.echo()
+    scr.move(ques_pos, 0)
+    scr.clrtoeol()
+    scr.addstr(ques_pos, 0, "command : ")
+    command = scr.getstr()
+    if command == "backend":
+        response = "List of disponible backend\n\n"
+        for backend in sqltoplib.DISPONIBLE_BACKEND:
+            response = response + backend + "\n"
+    elif command == "help":
+        response = """ List of disponible command\n\n
+ backend   List disponible backend
+ load      Load connection
+ save      save current connection
+ help      Display this help
+ quit      Quit
+"""
+        
+    elif command == "quit":
+        sys.exit(0)
+    scr.erase()
+    scr.nodelay(0)
+    curses.noecho()
+    scr.addstr(1, 0, response)
+    scr.addstr(max_y - 1, 1, "Press any key to quit")
+    scr.getch()
+    scr.nodelay(1)
+    curses.noecho()
+    
+
 def add_connection(scr, fullscreen=False):
     """
     Create a new sql connection and return it
@@ -304,6 +366,7 @@ def help(scr):
  Keyboard shortcut
  
  [a]dd          Add a new connection
+ [c]onnect      Connect or disconnect
  [d]elay        Modify delay between refresh
  [e]dit         Edit current connection
  [E]xtension    Display extended functionality  
@@ -317,6 +380,7 @@ def help(scr):
  [w]rite        Dump process to a csv file
  [h]elp         Display this help 
  [q]uit         Quit
+ [:]            Interactive command
  
  Use up and down arrow to select process
  Use left and right arrow to navigate history
@@ -332,7 +396,7 @@ def help(scr):
     curses.noecho()
     
 
-def edit_connection(scr, pm):
+def edit_connection(scr, pm, fullscreen=False):
     """
     Edit a sql conection
     """
@@ -416,6 +480,53 @@ def display_details(scr, process):
     scr.nodelay(1)
     curses.curs_set(1)
 
+def add_filter(scr, pm, fullscreen=False):
+    (max_y, max_x) = scr.getmaxyx()
+    if fullscreen:
+        ques_pos = max_y - 1
+    else:
+        ques_pos = 3
+    key = ""
+    scr.addstr(ques_pos, 0, '[p]id [u]ser [h]ost [d]atabase [s]tate [t]ime [i]nfo [r]eset : ')
+    scr.nodelay(0)
+    curses.echo()
+    scr.refresh()
+    key = scr.getch()
+    if key == ord("p"):
+        key = "pid"
+    elif key == ord("u"):
+        key = "user"
+    elif key == ord("h"):
+        key = "host"
+    elif key == ord("d"):
+        key = "db"
+    elif key == ord("s"):
+        key = "state"
+    elif key == ord("t"):
+        key = "time"
+    elif key == ord("i"):
+        key = "info"
+    elif key == ord("r"):
+        pm.del_all_filter()
+        key = None
+    else:
+        key = None
+    if key is not None:
+        scr.move(ques_pos, 0)
+        scr.clrtoeol()
+        txt_value = "Specify a value or regexp [ " + pm.get_filter(key) + " ] : "
+        scr.addstr(ques_pos, 0, 'Specify a value or regexp [ %s ] : ' % (pm.get_filter(key)))
+        #scr.move(3, len(txt_value))
+        value = scr.getstr()
+        if value == "":
+            value = pm.get_filter(key)
+        pm.add_filter(key, value)
+        curses.noecho()
+        scr.nodelay(1)
+        scr.refresh()
+    scr.nodelay(1)
+    curses.noecho()
+
 def display_header(scr, pm, index, pms, fullscreen=False):
     """
     Display header info
@@ -430,9 +541,13 @@ def display_header(scr, pm, index, pms, fullscreen=False):
             filtered_task = len(pm.process)
         else:
             total_task = len(pm.process)
+        if pm.is_online:
+            status = "Online"
+        else:
+            status = "Offline"
         scr.addstr(0, 0, "Tasks : %s Total, %s filtered, Conn : %d / %d" % (str(total_task), str(filtered_task), index + 1, len(pms)))
         scr.addstr(1, 0, 'User : %s, Host : %s, Port : %s, Uptime : %s' % (pm.user[:10], pm.host[:15], pm.port, pm.uptime))
-        scr.addstr(2, 0, 'backend : %s, Version : %s' % (pm.BACKEND, pm.version))
+        scr.addstr(2, 0, 'backend : %s, Version : %s, Status : %s' % (pm.BACKEND, pm.version, status))
         if pm.BACKEND == "linux":
             scr.addstr(4, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
         else:
@@ -469,16 +584,22 @@ def display_process(scr, pm=None, highlight=None, fullscreen=False):
             if highlight == (cnt - 5):
                 if pm.BACKEND == "linux":
                     scr.addstr(cnt, 0, '%-10s %-11s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.state, process.time, process.info[:44]), curses.A_REVERSE)
+                elif pm.BACKEND == "redisdb":
+                    scr.addstr(cnt, 0, '%-11s %-5s %-8s %-5s' % (process.user, process.state, process.time, process.info[:44]), curses.A_REVERSE)
                 else:
                     scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]), curses.A_REVERSE)
             else:
                 if pm.BACKEND == "linux":
                     scr.addstr(cnt, 0, '%-10s %-11s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.state, process.time, process.info[:44]))
+                elif pm.BACKEND == "redisdb":
+                    scr.addstr(cnt, 0, '%-11s %-5s %-8s %-5s' % (process.user, process.state, process.time, process.info[:44]))
                 else:
                     scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]))
         else:
             if pm.BACKEND == "linux":
                 scr.addstr(cnt, 0, '%-10s %-11s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.state, process.time, process.info[:44]))
+            elif pm.BACKEND == "redisdb":
+                scr.addstr(cnt, 0, '%-11s %-5s %-8s %-5s' % (process.user, process.state, process.time, process.info[:44]))
             else:
                 scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]))
         cnt += 1
@@ -515,7 +636,6 @@ def main(scr, args):
     pms = []
     pms.append(pm)
     fullscreen = args["fullscreen"]
-    
     while 1:
         key = scr.getch()
         if key == ord("a"):
@@ -525,6 +645,17 @@ def main(scr, args):
                 if pms[pm_index].BACKEND == "Unknown":
                     pms.remove(pms[pm_index])
                 pms.append(new_pm)
+                pm_index = len(pms) - 1
+        elif key == ord("c"):
+            if pms[pm_index].is_online:
+                pms[pm_index].disconnect()
+            else:
+                try:
+                    pms[pm_index].connect()
+                except:
+                    pass
+        elif key == ord(":"):
+            ask(scr, fullscreen=fullscreen)
         elif key == ord("F"):
             if fullscreen:
                 fullscreen = False
@@ -570,69 +701,17 @@ def main(scr, args):
                     pms[pm_index].history(history_pos)
         elif key == ord("d"):
             #Key to change delay
-            scr.addstr(3, 0, 'Specify delay in second : ')
-            scr.move(3, 26)
-            scr.nodelay(0)
-            curses.echo()
-            scr.refresh()
-            try:
-                delay = int(scr.getstr())
-            except ValueError:
-                scr.move(3, 0)
-                scr.clrtoeol()
-                scr.addstr(3, 0, 'Bad delay value')
-                scr.refresh()
-                time.sleep(1)
-            delay_counter = delay
-            curses.noecho()
-            scr.nodelay(1)
-            scr.refresh()
-            scr.erase()
+            changed_delay = change_delay(scr, fullscreen=fullscreen)
+            if changed_delay is not None:
+                delay_counter = changed_delay
+                delay = changed_delay
+            
         elif key == ord("e"):
             #Key to edit the current connection
             edit_connection(scr, pm)
         elif key == ord("f"):
             #key to edit or add filter
-            key = ""
-            scr.addstr(3, 0, '[p]id [u]ser [h]ost [d]atabase [s]tate [t]ime [i]nfo [r]eset : ')
-            scr.nodelay(0)
-            curses.echo()
-            scr.refresh()
-            key = scr.getch()
-            if key == ord("p"):
-                key = "pid"
-            elif key == ord("u"):
-                key = "user"
-            elif key == ord("h"):
-                key = "host"
-            elif key == ord("d"):
-                key = "db"
-            elif key == ord("s"):
-                key = "state"
-            elif key == ord("t"):
-                key = "time"
-            elif key == ord("i"):
-                key = "info"
-            elif key == ord("r"):
-                pms[pm_index].del_all_filter()
-                key = None
-            else:
-                key = None
-            if key is not None:
-                scr.move(3, 0)
-                scr.clrtoeol()
-                txt_value = "Specify a value or regexp [ " + pms[pm_index].get_filter(key) + " ] : "
-                scr.addstr(3, 0, 'Specify a value or regexp [ %s ] : ' % (pms[pm_index].get_filter(key)))
-                scr.move(3, len(txt_value))
-                value = scr.getstr()
-                if value == "":
-                    value = pms[pm_index].get_filter(key)
-                pms[pm_index].add_filter(key, value)
-                curses.noecho()
-                scr.nodelay(1)
-                scr.refresh()
-            scr.nodelay(1)
-            curses.noecho()
+            add_filter(scr, pms[pm_index], fullscreen=fullscreen)
         elif key == ord("k"):
             #key to kill sql process to threads
             scr.addstr(3, 0, 'Specify the id process to kill : ')
@@ -708,8 +787,9 @@ def main(scr, args):
         if delay_counter  > delay:
             delay_counter = 0
             for p in pms: 
-                try:                 
-                    p.refresh()
+                try:
+                    if p.is_online:         
+                        p.refresh()
                 except sqltoplib.processmanager.ProcessManagerError:
                     pass
         elif paused:
@@ -726,7 +806,7 @@ def main(scr, args):
         else:
             display_header(scr, pms[pm_index], pm_index, pms)
             display_process(scr, pms[pm_index], cursor_pos)
-            display_footer(scr, "[a]dd [d]elay [f]ilter [i]nfo [o]rder [p]aused [r]emove [w]rite [h]elp [q]uit")
+            display_footer(scr, "[a]dd [c]onnect [d]elay [f]ilter [i]nfo [o]rder [p]aused [r]emove [h]elp [q]uit")
             scr.move(3, 0)
         #curses.curs_set(1)
         if paused or history:
@@ -743,6 +823,7 @@ if __name__ == '__main__':
     #Call the parser function
     args = arg_parser()
     #Curses wrapper around the main function
+    sys.stdout.write("\x1b]2;mytop\x07")
     curses.wrapper(main, args)
 
 

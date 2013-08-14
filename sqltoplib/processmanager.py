@@ -49,6 +49,7 @@ class ProcessManager(object):
         self._uptime = 0
         self._process = []
         self._filter = {}
+        self._is_online = False
         
     @property
     def user(self):
@@ -179,6 +180,13 @@ class ProcessManager(object):
         return self._version
 
     @property
+    def is_online(self):
+        """
+        Get status
+        """
+        return self._is_online
+    
+    @property
     def uptime(self):
         """
         Get sql server uptime
@@ -241,6 +249,11 @@ class ProcessManager(object):
         Connect to the sql server
         """
         self._sql = db.cursor()
+
+    def disconnect(self):
+        self._sql = None
+        self._is_online = False
+        self._process = []
 
     def close(self):
         """

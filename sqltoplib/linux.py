@@ -63,7 +63,7 @@ class ProcessManager(processmanager.ProcessManager):
         self._version = platform.release()
 
     def connect(self):
-        pass
+        self._is_online = True
 
     def kill(self, pid, signal):
         process = psutil.Process(pid)

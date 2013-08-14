@@ -146,6 +146,16 @@ def create_connection(backend=None, user=None, host="localhost", password=None, 
             port = 3306
         conn = mysql.ProcessManager(user, host, password, port)
         return conn
+    elif backend == "redisdb":
+        if host is None:
+            host = "localhost"
+        elif port is None:
+            port = 6379
+        elif password is None:
+            password = ""
+        user = "None"
+        conn = redisdb.ProcessManager(user, host, password, port)
+        return conn
     elif backend == "mongodb":
         conn = mongodb.ProcessManager(user, host, password, port)
         return conn

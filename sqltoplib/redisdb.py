@@ -46,6 +46,7 @@ class ProcessManager(processmanager.ProcessManager):
         try:
             redis_process = self._sql.client_list()
         except:
+            self._is_online = False
             raise processmanager.ProcessManagerError("Could not retieve process")
         all_process = []
         try:
@@ -75,10 +76,12 @@ class ProcessManager(processmanager.ProcessManager):
         try:
             db = redis.StrictRedis(host=self._host, db=0)
         except all as e:
+            self._is_online = False
             raise processmanager.ProcessManagerError("Impossible to connect to the database serveur")
         else:
             #Create mysql object
             self._sql = db
+            self._is_online = True
 
     def kill(self, pid):
         """

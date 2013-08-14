@@ -46,6 +46,7 @@ class ProcessManager(processmanager.ProcessManager):
         try:
             self._sql.execute('SHOW FULL PROCESSLIST;')
         except:
+            self._is_online = False
             raise processmanager.ProcessManagerError("Could not retieve process")
         all_process = []
         try:
@@ -99,10 +100,12 @@ class ProcessManager(processmanager.ProcessManager):
         try:
             db = MySQLdb.connect(host=self._host, user=self._user, passwd=self._password, port=self._port)
         except MySQLdb.OperationalError as e:
+            self._is_online = False
             raise processmanager.ProcessManagerError("Impossible to connect to the database serveur")
         else:
             #Create mysql object
             self._sql = db.cursor()
+            self._is_online = True
 
     def kill(self, pid):
         """
