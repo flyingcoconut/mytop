@@ -557,6 +557,8 @@ def display_header(scr, pm, index, pms, fullscreen=False):
             scr.addstr(0, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
         else:
             scr.addstr(0, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
+    if not pm.is_online and pm.error is not None:
+        scr.addstr(3, 0, 'error : %s' % (pm.error))
 
 def display_footer(scr, text):
     """
