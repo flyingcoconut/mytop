@@ -50,6 +50,7 @@ class ProcessManager(object):
         self._process = []
         self._filter = {}
         self._is_online = False
+        self._error = None
         
     @property
     def user(self):
@@ -185,6 +186,13 @@ class ProcessManager(object):
         Get status
         """
         return self._is_online
+    
+    @property
+    def error(self):
+        """
+        Get status
+        """
+        return self._error
     
     @property
     def uptime(self):
