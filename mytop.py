@@ -21,7 +21,6 @@ import os
 import sys
 import time
 import curses
-import signal
 import getopt
 import datetime
 import getpass
