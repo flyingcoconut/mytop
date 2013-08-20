@@ -20,43 +20,12 @@
 sqloptlib is a library to manipulate and get sql server process
 """
 
-import getopt
 import datetime
-import re
 import pwd
 import os
 
-DISPONIBLE_BACKEND = []
-try:
-    import mysql
-    DISPONIBLE_BACKEND.append("mysql")
-except all as e:
-    pass
+DISPONIBLE_BACKEND = ["mysql", "redisdb", "linux", "mongodb"]
 
-try:
-    import mongodb
-    DISPONIBLE_BACKEND.append("mongodb")
-except all as e:
-    print e
-    pass
-
-try:
-    import redisdb
-    DISPONIBLE_BACKEND.append("redisdb")
-except all as e:
-    pass
-
-try:
-    import pgsql
-    DIPONIBLE_BACKEND.append("pgsql")
-except:
-    pass
-
-try:
-    import linux
-    DISPONIBLE_BACKEND.append("linux")
-except all as e:
-    pass
     
 try:
     import dummy
@@ -136,6 +105,10 @@ class Config(object):
 
 def create_connection(backend=None, user=None, host="localhost", password=None, port=None):
     if backend == "mysql":
+        try:
+            import mysql
+        except ImportError:
+            raise ImportError
         if user is None:
             user = "root"
         elif host is None:
@@ -147,6 +120,10 @@ def create_connection(backend=None, user=None, host="localhost", password=None, 
         conn = mysql.ProcessManager(user, host, password, port)
         return conn
     elif backend == "redisdb":
+        try:
+            import redisdb
+        except ImportError:
+            raise ImportError
         if host is None:
             host = "localhost"
         elif port is None:
@@ -157,9 +134,17 @@ def create_connection(backend=None, user=None, host="localhost", password=None, 
         conn = redisdb.ProcessManager(user, host, password, port)
         return conn
     elif backend == "mongodb":
+        try:
+            import mongodb
+        except ImportError:
+            raise ImportError
         conn = mongodb.ProcessManager(user, host, password, port)
         return conn
     elif backend == "linux":
+        try:
+            import linux
+        except ImportError:
+            raise ImportError
         user = pwd.getpwuid(os.getuid())[0]
         host = "localhost"
         port = "None"

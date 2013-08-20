@@ -19,7 +19,7 @@
 """
 sqltoplib MySQL backend
 """
-import getopt
+
 import datetime
 import re
 
@@ -47,7 +47,8 @@ class ProcessManager(processmanager.ProcessManager):
             self._sql.execute('SHOW FULL PROCESSLIST;')
         except:
             self._is_online = False
-            raise processmanager.ProcessManagerError("Could not retieve process")
+            self._error = "Could not retrieve process"
+            raise processmanager.ProcessManagerError("Could not retrieve process")
         all_process = []
         try:
             for row in self._sql.fetchall():
@@ -101,6 +102,7 @@ class ProcessManager(processmanager.ProcessManager):
             db = MySQLdb.connect(host=self._host, user=self._user, passwd=self._password, port=self._port)
         except MySQLdb.OperationalError as e:
             self._is_online = False
+            self._error = "Impossible to connect to the database serveur"
             raise processmanager.ProcessManagerError("Impossible to connect to the database serveur")
         else:
             #Create mysql object

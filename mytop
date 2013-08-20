@@ -24,7 +24,6 @@ import curses
 import signal
 import getopt
 import datetime
-import getpass
 
 
 try: #try to import sqltoplib
@@ -39,6 +38,13 @@ except ImportError:
     pass
 
 VERSION = "0.0.2"
+
+def set_procname(newname):
+    from ctypes import cdll, byref, create_string_buffer
+    libc = cdll.LoadLibrary('libc.so.6')    #Loading a 3rd party library C
+    buff = create_string_buffer(len(newname)+1) #Note: One larger than the name (man prctl says that)
+    buff.value = newname                 #Null terminated string as it should be
+    libc.prctl(15, byref(buff), 0, 0, 0) #Refer to "#define" of "/usr/include/linux/prctl.h" for the misterious value 16 & arg[3..5] are zero as the man page says.
 
 def signal_handler(sig, frame):
     """
@@ -550,11 +556,15 @@ def display_header(scr, pm, index, pms, fullscreen=False):
         scr.addstr(2, 0, 'backend : %s, Version : %s, Status : %s' % (pm.BACKEND, pm.version, status))
         if pm.BACKEND == "linux":
             scr.addstr(4, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
+        elif pm.BACKEND == "Unknown":
+            scr.addstr(4, 0, '%s' % (' '*(max_x)), curses.A_BOLD|curses.A_REVERSE)
         else:
             scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
     else:
         if pm.BACKEND == "linux":
             scr.addstr(0, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
+        elif pm.BACKEND == "Unknown":
+            scr.addstr(0, 0, '%s' % (' '*(max_x)), curses.A_BOLD|curses.A_REVERSE)
         else:
             scr.addstr(0, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
     if not pm.is_online and pm.error is not None:
@@ -820,6 +830,10 @@ def main(scr, args):
         time.sleep(0.1)
 
 if __name__ == '__main__':
+    try:
+        set_procname("mytop")
+    except:
+        pass
     #Initialise signal to catch SIGINT
     signal.signal(signal.SIGINT, signal_handler)
     #Call the parser function

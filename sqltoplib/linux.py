@@ -19,7 +19,6 @@
 """
 sqloptlib is a library to manipulate and get sql server process
 """
-import getopt
 import datetime
 import re
 import platform
