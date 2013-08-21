@@ -120,3 +120,19 @@ class Process(object):
         Set info
         """
         self._info = value
+
+class Process2(object):
+    """
+    A process class
+    """
+    def __init__(self):
+        self._properties = {}
+
+    def list_properties(self):
+        return self._properties.keys()
+    
+    def get_properties(self, property):
+        return self._properties[property]
+    
+    def set_properties(self, property, value):
+        self._properties[property] = value
