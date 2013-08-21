@@ -64,11 +64,11 @@ class ProcessManager(processmanager.ProcessManager):
     def connect(self):
         self._is_online = True
 
-    def kill(self, pid, signal):
-        process = psutil.Process(pid)
+    def kill(self, process, signal):
+        process = psutil.Process(process.pid)
         process.send_signal(signal)
         
-    def set_nice(self, pid, nice):
-        process = psutil.Process(pid)
+    def set_nice(self, process, nice):
+        process = psutil.Process(process.pid)
         process.set_nice(nice)
    

@@ -25,7 +25,6 @@ import signal
 import getopt
 import datetime
 
-
 try: #try to import sqltoplib
     import sqltoplib
 except ImportError:
@@ -648,6 +647,7 @@ def main(scr, args):
     pms = []
     pms.append(pm)
     fullscreen = args["fullscreen"]
+    extension = False
     while 1:
         key = scr.getch()
         if key == ord("a"):

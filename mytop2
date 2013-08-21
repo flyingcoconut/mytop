@@ -1,0 +1,366 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Author : Patrick Charron
+# Email : patrick.charron.pc@gmail.com
+# Description : SQL process viewer
+#  
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+import sys
+import time
+import curses
+import signal
+import getopt
+import datetime
+import ui
+
+try: #try to import sqltoplib
+    import sqltoplib
+except ImportError:
+    print "sqltoplib library is missing"
+    sys.exit(1)
+
+try:
+    import sqlparse
+except ImportError:
+    pass
+
+VERSION = "0.0.2"
+
+def set_procname(newname):
+    from ctypes import cdll, byref, create_string_buffer
+    libc = cdll.LoadLibrary('libc.so.6')    #Loading a 3rd party library C
+    buff = create_string_buffer(len(newname)+1) #Note: One larger than the name (man prctl says that)
+    buff.value = newname                 #Null terminated string as it should be
+    libc.prctl(15, byref(buff), 0, 0, 0) #Refer to "#define" of "/usr/include/linux/prctl.h" for the misterious value 16 & arg[3..5] are zero as the man page says.
+
+def signal_handler(sig, frame):
+    """
+    Get signals and exit
+    """
+    sys.exit(1)
+
+def show_usage():
+    """
+    Print a usage message
+    """
+    print """Usage: mytop -b [BACKEND] -u [USER] -p [PASSWORD] ...
+    """
+
+def show_help():
+    """
+    Print a help message
+    """
+    print """Process viewer
+Example: mytop -u root -h localhost -p password
+
+Options:
+  -b, --backend=BACKEND     set the backend (mysql, mongodb, pgsql)
+  -c, --config=PATH         set config file path
+  -F                        fullscreen mode
+  -h, --host=HOSTNAME       set hostname
+  -H, --history=LENGTH      set history length (eg. 10)
+  -l, --list                list all backend
+  -p, --password=PASSWORD   set password
+  -P, --port=PORT           set port number
+  -u, --user=USERNAME       set username
+
+Miscellaneous:
+  -V, --version         print version information and exit
+  --help                display this help and exit
+
+Report bugs to: patrick.charron.pc@gmail.com"""
+
+def arg_parser():
+    """
+    Function to parse command line arguments
+    """
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "b:Fh:lp:P:u:V", ["backend=", "host=", "list", "password=", "port=", "user=", "version", "help"])
+    except getopt.GetoptError, err:
+        # print help information and exit:
+        show_usage()
+        print str(err) # will print something like "option -a not recognized"
+        sys.exit(1)
+    options = {}
+    options["host"] = "localhost"
+    options["password"] = None
+    options["port"] = 0
+    options["user"] = None
+    options["backend"] = None
+    options["fullscreen"] = False
+    for o, a in opts:
+        if o in ("-b", "--backend"):
+            options["backend"] = a
+        elif o == "-F":
+        	   options["fullscreen"] = True
+        elif o in ("-h", "--host"):
+            options["host"] = a
+        elif o in ("-l", "--list"):
+            for backend in sqltoplib.DISPONIBLE_BACKEND:
+                print backend
+            sys.exit(0)
+        elif o in ("-p", "--password"):
+            options["password"] = a
+        elif o in ("-P", "--port"):
+            options["port"] = int(a)
+        elif o in ("-u", "--user"):
+            options["user"] = a
+        elif o in ("-V", "--version"):
+            print "Version %s" % VERSION
+            sys.exit(0)
+        elif o == "--help":
+            show_usage()
+            show_help()
+            sys.exit(0)
+        else:
+            show_usage()
+            sys.exit(1)
+
+    if options["backend"] not in sqltoplib.DISPONIBLE_BACKEND and options["backend"] is not None:
+        print "is not a valid type"
+        sys.exit(1)
+    return options
+
+
+
+def main(scr, args):
+    """
+    The main function
+    """
+    #Try to connect to the database server
+    if args["backend"] is not None:
+        pm = sqltoplib.create_connection(backend=args["backend"], host=args["host"], user=args["user"], password=args["password"], port=args["port"])
+        try:
+            pm.connect()
+        except sqltoplib.processmanager.ProcessManagerError:
+            pass
+    else:
+        pm = sqltoplib.create_connection(backend="dummy")
+    (max_y, max_x) = scr.getmaxyx()
+    try:
+    	 curses.use_default_colors()
+    except curses.error:
+    	 pass
+    scr.nodelay(1)
+    scr.keypad(1)
+    maxInfo = (max_x-75)
+    delay_counter = 1
+    delay = 1
+    paused = False
+    history = False
+    history_pos = 0
+    cursor_pos = 0
+    cursor_max_pos = 0
+    pm_index = 0
+    pms = []
+    pms.append(pm)
+    fullscreen = args["fullscreen"]
+    extension = False
+    while 1:
+        key = scr.getch()
+        if key == ord("a"):
+            #Key for adding a sql connection
+            new_pm = add_connection(scr, fullscreen=fullscreen)
+            if new_pm is not None:
+                if pms[pm_index].BACKEND == "Unknown":
+                    pms.remove(pms[pm_index])
+                pms.append(new_pm)
+                pm_index = len(pms) - 1
+        elif key == ord("c"):
+            if pms[pm_index].is_online:
+                pms[pm_index].disconnect()
+            else:
+                try:
+                    pms[pm_index].connect()
+                except:
+                    pass
+        elif key == ord(":"):
+            ask(scr, fullscreen=fullscreen)
+        elif key == ord("F"):
+            if fullscreen:
+                fullscreen = False
+                curses.curs_set(1)
+            else:
+                fullscreen = True
+                curses.curs_set(0)
+        elif key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"), ord("6"), ord("7"), ord("8"), ord("9")]:
+           #All keyboard key number are used to select wich connection to display
+           index = int(chr(key)) - 1
+           if index <= len(pms) - 1:
+               pm_index = index
+           else:
+               scr.move(3, 0)
+               scr.clrtoeol()
+               scr.addstr(3, 0, "Connection %d does not exist" % (index))
+               time.sleep(1)
+        elif key == ord("q"):
+            #Key to exit mytop
+            sys.exit(0)
+        elif key == ord("h"):
+            help(scr)
+        elif key == curses.KEY_LEFT or key == curses.KEY_RIGHT:
+            #Key to navigate history
+            if len(pms[pm_index]._history) == 0:
+                scr.addstr(3, 0, 'No history')
+                time.sleep(1)
+            elif history:
+                if key == curses.KEY_LEFT:
+                    if history_pos != 0:
+                        history_pos = history_pos - 1
+                        pms[pm_index].history(history_pos)
+                if key == curses.KEY_RIGHT:
+                    history_pos = history_pos + 1
+                    if history_pos > len(pm._history) - 1:
+                        history = False
+                    else:
+                        pm.history(history_pos)
+            else:
+                if key != curses.KEY_RIGHT:
+                    history = True
+                    history_pos = len(pms[pm_index]._history) - 1
+                    pms[pm_index].history(history_pos)
+        elif key == ord("d"):
+            #Key to change delay
+            changed_delay = change_delay(scr, fullscreen=fullscreen)
+            if changed_delay is not None:
+                delay_counter = changed_delay
+                delay = changed_delay
+            
+        elif key == ord("e"):
+            #Key to edit the current connection
+            edit_connection(scr, pm)
+        elif key == ord("f"):
+            #key to edit or add filter
+            add_filter(scr, pms[pm_index], fullscreen=fullscreen)
+        elif key == ord("k"):
+            #key to kill sql process to threads
+            scr.addstr(3, 0, 'Specify the id process to kill : ')
+            scr.move(3, 33)
+            scr.nodelay(0)
+            curses.echo()
+            scr.refresh()
+            pids = scr.getstr().split()
+            for pid in pids:
+                try:
+                    pm.kill(pid)
+                except sqltoplib.processManagerError:
+                    scr.move(3, 0)
+                    scr.clrtoeol()
+                    scr.addstr(3, 0, '%s' % (e))
+                    scr.refresh()
+                    time.sleep(1)
+            curses.noecho()
+            scr.nodelay(1)
+            scr.refresh()
+
+        elif key == ord("w"):
+            #Key to write results to a file
+            write_to_file(scr, pm)
+        elif key == curses.KEY_DOWN or key == curses.KEY_UP:
+            if key == curses.KEY_DOWN:
+                if cursor_pos < len(pms[pm_index].process) - 1:
+                    cursor_pos = cursor_pos + 1
+            if key == curses.KEY_UP:
+                if cursor_pos > 0:
+                    cursor_pos = cursor_pos - 1
+            if fullscreen:
+                display_process(scr, pms[pm_index], cursor_pos, fullscreen=True)
+            else:
+                display_process(scr, pms[pm_index], cursor_pos)
+            scr.move(3, 0)
+            scr.refresh()
+            init_time = time.time()
+            while time.time() - init_time < 0.5:
+                key = scr.getch()
+                if key == curses.KEY_DOWN:
+                    if cursor_pos < len(pms[pm_index].process) - 1:
+                        cursor_pos = cursor_pos + 1
+                elif key == curses.KEY_UP:
+                    if cursor_pos > 0:
+                        cursor_pos = cursor_pos - 1
+                if fullscreen:
+                    display_process(scr, pms[pm_index], cursor_pos, fullscreen=True)
+                else:
+                    display_process(scr, pms[pm_index], cursor_pos)
+                scr.move(3, 0)
+                scr.refresh()
+        elif key == ord("i"):
+            #Key to display details about a process
+            display_details(scr, pms[pm_index].process[cursor_pos])
+            scr.erase()
+        elif key == ord("p"):
+            #Key to pause mytop
+            if paused:
+                paused = False
+                delay_counter = delay
+            else:
+                paused = True
+        elif key == ord("r"):
+            #key to remove connection
+            pms.remove(pms[pm_index]) 
+            if pm_index > len(pms) - 1 :
+            	 pm_index = len(pms) - 1
+            if len(pms) == 0:
+            	 dummy_pm = sqltoplib.create_connection(backend="dummy")
+            	 pms.append(dummy_pm)
+            	 pm_index = 0
+        if delay_counter  > delay:
+            delay_counter = 0
+            for p in pms: 
+                try:
+                    if p.is_online:         
+                        p.refresh()
+                except sqltoplib.processmanager.ProcessManagerError:
+                    pass
+        elif paused:
+            pass
+        elif history:
+            pass
+        else:
+            delay_counter = delay_counter + 0.1
+        
+        scr.erase()
+        if fullscreen:
+            display_header(scr, pms[pm_index], pm_index, pms, fullscreen=True)
+            display_process(scr, pms[pm_index], cursor_pos, fullscreen=True)
+        else:
+            display_header(scr, pms[pm_index], pm_index, pms)
+            display_process(scr, pms[pm_index], cursor_pos)
+            display_footer(scr, "[a]dd [c]onnect [d]elay [f]ilter [i]nfo [o]rder [p]aused [r]emove [h]elp [q]uit")
+            scr.move(3, 0)
+        #curses.curs_set(1)
+        if paused or history:
+            curses.curs_set(0)
+            scr.addstr(3, 0, 'Pause', curses.A_BLINK)
+        if history:
+            curses.curs_set(0)
+            scr.addstr(3, 0, 'History (%s / %s)' % (str(history_pos), str(len(pm._history) - 1)), curses.A_BLINK)
+        time.sleep(0.1)
+
+if __name__ == '__main__':
+    try:
+        set_procname("mytop")
+    except:
+        pass
+    #Initialise signal to catch SIGINT
+    signal.signal(signal.SIGINT, signal_handler)
+    #Call the parser function
+    args = arg_parser()
+    #Curses wrapper around the main function
+    sys.stdout.write("\x1b]2;mytop\x07")
+    #curses.wrapper(main, args)
+
+

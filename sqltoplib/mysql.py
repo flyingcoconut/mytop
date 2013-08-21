@@ -109,13 +109,19 @@ class ProcessManager(processmanager.ProcessManager):
             self._sql = db.cursor()
             self._is_online = True
 
-    def kill(self, pid):
+    def kill(self, process):
         """
         Kil a mysql threads
         """
         try:
-            self._sql.execute('kill ' + pid)
+            self._sql.execute('kill ' + process.pid)
         except MySQLdb.OperationalError as e:
             raise processmanager.ProcessManagerError("Impossible to kill pid : " + str(pid))
+    
+    def explain(self, process):
+        ""
+        Explain a mysql query
+        """
+        print "todo"
    
 
