@@ -25,115 +25,12 @@ import platform
 import time
 
 import processmanager
-import process
 
 try: #Try to import psutil library
     import psutil
 except ImportError:
      raise processmanager.ProcessManagerError("linux backend not disponible") 
 
-class Process(object):
-    """
-    A process class
-    """
-    def __init__(self, pid=0, user=None, host=None, state=None, time=0, info=None):
-        self._pid = pid
-        self._user = user
-        self._host = host
-        self._state = state
-        self._time = time
-        self._info = info
-
-    @property
-    def pid(self):
-        """
-        Get process pid
-        """
-        return self._pid
-    @pid.setter
-    def pid(self, value):
-        """
-        Set process pid
-        """
-        self._pid = value
-
-    @property
-    def user(self):
-        """
-        Get user running process
-        """
-        return self._user
-    @user.setter
-    def user(self, value):
-        """
-        Set user running process
-        """
-        self._user = value
-
-    @property
-    def host(self):
-        """
-        Get host
-        """
-        return self._host
-    @host.setter
-    def host(self, value):
-        """
-        Set host
-        """
-        self._host = value
-
-    @property
-    def db(self):
-        """
-        Get database name
-        """
-        return self._db
-    @db.setter
-    def db(self, value):
-        """
-        Set database name
-        """
-        self._db = value
-
-    @property
-    def state(self):
-        """
-        Get process state
-        """
-        return self._state
-    @state.setter
-    def state(self, value):
-        """
-        Set process state
-        """
-        self._state = value
-
-    @property
-    def time(self):
-        """
-        Get process running time
-        """
-        return self._time
-    @time.setter
-    def time(self, value):
-        """
-        Set process running time
-        """
-        self._time = value
-
-    @property
-    def info(self):
-        """
-        Get info
-        """
-        return self._info
-    @info.setter
-    def info(self, value):
-        """
-        Set info
-        """
-        self._info = value
 
 class ProcessManager(processmanager.ProcessManager):
     """
@@ -151,7 +48,13 @@ class ProcessManager(processmanager.ProcessManager):
         all_process = []
         for pr in linux_process:
             info = pr.name + " " + " ".join(pr.cmdline)
-            p = process.Process(pr.pid, pr.username, "localhost", "None", "s", int(pr.create_time), info)
+            p = {}
+            p["pid"] = pr.pid
+            p["user"] = pr.username
+            p["host"] = "localhost"
+            p["state"] = "s"
+            p["time"] = int(pr.create_time)
+            p["info"] = info
             all_process.append(p)
         if len(self._history) > self._max_history:
             self._history.pop(0)

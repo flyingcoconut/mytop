@@ -131,42 +131,8 @@ class ProcessManager(object):
             for p in self._process:
                 hits = 0
                 for key in self._filter.keys():
-                    if key == "pid":
-                        try:
-                            if re.match(self._filter[key], p.pid, flags=0):
-                                hits = hits + 1
-                        except re.error:
-                            pass
-                    elif key == "user":
-                        try:
-                            if re.match(self._filter[key], p.user, flags=0):
-                                hits = hits + 1
-                        except re.error:
-                            pass
-                    elif key == "host":
-                        try:
-                            if re.match(self._filter[key], p.host, flags=0):
-                                hits = hits + 1
-                        except re.error:
-                            pass
-                    elif key == "db":
-                        try:
-                            if re.match(self._filter[key], p.db, flags=0):
-                                hits = hits + 1
-                        except re.error:
-                            pass
-                    elif key == "state":
-                        try:
-                            if re.match(self._filter[key], p.state, flags=0):
-                                hits = hits + 1
-                        except re.error:
-                            pass
-                    elif key == "time":
-                        if re.match(self._filter[key], p.time, flags=0):
-                            hits = hits + 1
-                    elif key == "info":
-                        if re.match(self._filter[key], p.info, flags=0):
-                            hits = hits + 1
+                    if re.match(self._filter[key], p[key], flags=0):
+                        hits = hits + 1
                     if hits == len(self._filter.keys()):
                         filtered_process.append(p)
             return filtered_process
