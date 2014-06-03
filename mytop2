@@ -120,11 +120,11 @@ def arg_parser():
             show_usage()
             sys.exit(1)
 
-    f = open("formatdb")
-    text = f.read()
-    f.close()
-    data = json.loads(text)
-    options["formatdb"] = data
+#    f = open("formatdb")
+#    text = f.read()
+#    f.close()
+#    data = json.loads(text)
+#    options["formatdb"] = data
 
     if options["backend"] not in sqltoplib.DISPONIBLE_BACKEND and options["backend"] is not None:
         print "is not a valid type"
@@ -135,7 +135,7 @@ def arg_parser():
 def init_ui(scr):
     u = ui.Ui(scr)
     args = arg_parser()
-    u.formatdb = args["formatdb"]
+    #u.formatdb = args["formatdb"]
     u.start_ui()
 
 

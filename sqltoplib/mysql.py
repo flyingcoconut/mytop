@@ -119,7 +119,7 @@ class ProcessManager(processmanager.ProcessManager):
             raise processmanager.ProcessManagerError("Impossible to kill pid : " + str(pid))
     
     def explain(self, process):
-        ""
+        """
         Explain a mysql query
         """
         print "todo"
