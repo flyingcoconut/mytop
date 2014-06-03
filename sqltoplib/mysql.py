@@ -24,12 +24,16 @@ import datetime
 import re
 
 import processmanager
-import process
 
 try: #Try to import MySQLdb library
     import MySQLdb
 except ImportError:
-     raise processmanager.ProcessManagerError("mysql backend not disponible") 
+     raise processmanager.ProcessManagerError("mysql backend not disponible")
+     
+try:
+    import sqlparse
+except ImportError:
+    pass
 
 class ProcessManager(processmanager.ProcessManager):
     """
@@ -72,7 +76,14 @@ class ProcessManager(processmanager.ProcessManager):
                     query = "None"
                 else:
                     query = row[7]
-                p = process.Process(row[0], row[1], row[2].split(':')[0], db_name, state, row[5], query)
+                p = {}
+                p["pid"] = row[0]
+                p["user"] = row[1]
+                p["host"] = row[2].split(':')[0]
+                p["db"] = db_name
+                p["state"] = state
+                p["time"] = row[5]
+                p["info"] = query
                 all_process.append(p)
         except all as e:
             print e

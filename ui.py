@@ -104,70 +104,73 @@ class Ui(object):
         scr.nodelay(1)
         scr.refresh()
 
-    def change_delay(self):
+    def edit_delay(self):
         (max_y, max_x) = self.scr.getmaxyx()
         if self.fullscreen:
             ques_pos = max_y - 1
         else:
             ques_pos = 3
-        scr.addstr(ques_pos, 0, 'Specify delay in second : ')
-        scr.nodelay(0)
+        self.scr.addstr(ques_pos, 0, 'Specify delay in second : ')
+        self.scr.nodelay(0)
         curses.echo()
-        scr.refresh()
+        self.scr.refresh()
         try:
-            delay = int(scr.getstr())
+            delay = int(self.scr.getstr())
         except ValueError:
-            scr.move(ques_pos, 0)
-            scr.clrtoeol()
-            scr.addstr(ques_pos, 0, 'Bad delay value')
-            scr.refresh()
+            self.scr.move(ques_pos, 0)
+            self.scr.clrtoeol()
+            self.scr.addstr(ques_pos, 0, 'Bad delay value')
+            self.scr.refresh()
             time.sleep(1)
-            delay = None
+        else:
+            self.delay_counter = delay
+            self.delay = delay
         curses.noecho()
-        scr.nodelay(1)
-        scr.refresh()
-        scr.erase()
-        return delay
+        self.scr.nodelay(1)
+        self.scr.refresh()
+        self.scr.erase()
 
-    def ask(self):
-        (max_y, max_x) = scr.getmaxyx()
-        if fullscreen:
+
+    def command(self):
+        (max_y, max_x) = self.scr.getmaxyx()
+        if self.fullscreen:
              ques_pos = max_y - 1
         else:
              ques_pos = 3
-        scr.nodelay(0)
+        self.scr.nodelay(0)
         curses.echo()
-        scr.move(ques_pos, 0)
-        scr.clrtoeol()
-        scr.addstr(ques_pos, 0, "command : ")
-        command = scr.getstr()
+        self.scr.move(ques_pos, 0)
+        self.scr.clrtoeol()
+        self.scr.addstr(ques_pos, 0, "command : ")
+        command = self.scr.getstr()
         if command == "backend":
             response = "List of disponible backend\n\n"
             for backend in sqltoplib.DISPONIBLE_BACKEND:
                 response = response + backend + "\n"
         elif command == "help":
             response = """ List of disponible command\n\n
-     backend   List disponible backend
-     load      Load connection
-     save      save current connection
-     help      Display this help
-     quit      Quit
+     backend                    List disponible backend
+     load                       Load connection
+     save                       save current connection
+     help                       Display this help
+     filter <column> <regex>    
+     quit                       Quit
     """
             
         elif command == "quit":
             sys.exit(0)
-        scr.erase()
-        scr.nodelay(0)
+        self.scr.erase()
+        self.scr.nodelay(0)
         curses.noecho()
-        scr.addstr(1, 0, response)
-        scr.addstr(max_y - 1, 1, "Press any key to quit")
-        scr.getch()
-        scr.nodelay(1)
+        self.scr.addstr(1, 0, response)
+        self.scr.addstr(max_y - 1, 1, "Press any key to quit")
+        self.scr.getch()
+        self.scr.nodelay(1)
         curses.noecho()
 
-    def add_connection(self):
+    def add_pm(self):
         """
-        Create a new sql connection and return it
+        Add a process manager
         """
         (max_y, max_x) = self.scr.getmaxyx()
         if self.fullscreen:
@@ -286,14 +289,14 @@ class Ui(object):
         self.scr.nodelay(1)
         curses.noecho()
 
-    def help(self):
+    def display_help(self):
         """
         Display help
         """
         help_text = """
      Keyboard shortcut
      
-     [a]dd          Add a new connection
+     [a]dd          Add a new process manager
      [c]onnect      Connect or disconnect
      [d]elay        Modify delay between refresh
      [e]dit         Edit current connection
@@ -304,11 +307,11 @@ class Ui(object):
      [o]rder        Order process
      [p]aused       Pause
      [r]emove       Remove current connection
-     [s]tats        Get complete stats about current connection
-     [w]rite        Dump process to a csv file
+     [s]tats        Get complete stats about current process manager
+     [w]rite        Write process to a csv file
      [h]elp         Display this help 
      [q]uit         Quit
-     [:]            Interactive command
+     [:]            Command
      
      Use up and down arrow to select process
      Use left and right arrow to navigate history
@@ -323,16 +326,38 @@ class Ui(object):
         self.scr.nodelay(1)
         curses.noecho()
 
-    def edit_connection(self):
+    def display_history(self, key):
+        #Key to navigate history
+        if len(self.pms[self.pm_index]._history) == 0:
+            self.scr.addstr(3, 0, 'No history')
+            time.sleep(1)
+        elif self.history:
+            if key == curses.KEY_LEFT:
+                if self.history_pos != 0:
+                    self.history_pos = self.history_pos - 1
+                    self.pms[self.pm_index].history(self.history_pos)
+            if key == curses.KEY_RIGHT:
+                self.history_pos = self.history_pos + 1
+                if self.history_pos > len(self.pms[self.pm_index]._history) - 1:
+                    self.history = False
+                else:
+                    self.pms[self.pm_index].history(self.history_pos)
+        else:
+            if key != curses.KEY_RIGHT:
+                self.history = True
+                self.history_pos = len(self.pms[self.pm_index]._history) - 1
+                self.pms[self.pm_index].history(self.history_pos)
+
+    def edit_pm(self):
         """
-        Edit a sql conection
+        Edit a process manager
         """
         reload_pm = False
-        scr.nodelay(0)
+        self.scr.nodelay(0)
         curses.echo()
-        scr.move(3, 0)
-        scr.clrtoeol()
-        scr.addstr(3, 0, "host [ %s ] : " % (pm.host))
+        self.scr.move(3, 0)
+        self.scr.clrtoeol()
+        self.scr.addstr(3, 0, "host [ %s ] : " % (pm.host))
         value = scr.getstr()
         if value != "":
             pm.host = value
@@ -373,80 +398,34 @@ class Ui(object):
         """
         Display all info about a process
         """
-        (max_y, max_x) = scr.getmaxyx()
-        scr.erase()
-        scr.nodelay(0)
-        curses.curs_set(0)
-        scr.addstr(0, 0, "Process infos")
-        scr.addstr(2, 1, "Id", curses.A_BOLD)
-        scr.addstr(3, 1, str(process.pid))
-        scr.addstr(5, 1, "User", curses.A_BOLD)
-        scr.addstr(6, 1, process.user)
-        scr.addstr(8, 1, "Host", curses.A_BOLD)
-        scr.addstr(9, 1, process.host)
-        scr.addstr(11, 1, "Database", curses.A_BOLD)
-        scr.addstr(12, 1, process.db)
-        scr.addstr(14, 1, "State", curses.A_BOLD)
-        scr.addstr(15, 1, process.state)
-        scr.addstr(17, 1, "Time", curses.A_BOLD)
-        scr.addstr(18, 1, str(datetime.timedelta(seconds=process.time)))
-        scr.addstr(20, 1, "Info", curses.A_BOLD)
-        info = process.info
-        try:
-            scr.addstr(22, 0, info)
-        except _curses.error:
-            scr.addstr(22, 0, "Sql request is too long to display")
-        scr.addstr(max_y-1, 0, "Press any key to quit")
-        scr.refresh()
-        scr.getch()
-        scr.nodelay(1)
-        curses.curs_set(1)
+        pass
 
-    def add_filter(self):
-        (max_y, max_x) = scr.getmaxyx()
+    def edit_filter(self):
+        (max_y, max_x) = self.scr.getmaxyx()
         if self.fullscreen:
-            ques_pos = max_y - 1
+            self.ques_pos = max_y - 1
         else:
-            ques_pos = 3
+            self.ques_pos = 3
         key = ""
-        scr.addstr(ques_pos, 0, '[p]id [u]ser [h]ost [d]atabase [s]tate [t]ime [i]nfo [r]eset : ')
-        scr.nodelay(0)
+        self.scr.addstr(self.ques_pos, 0, 'Enter column name : ')
+        self.scr.nodelay(0)
         curses.echo()
-        scr.refresh()
-        key = scr.getch()
-        if key == ord("p"):
-            key = "pid"
-        elif key == ord("u"):
-            key = "user"
-        elif key == ord("h"):
-            key = "host"
-        elif key == ord("d"):
-            key = "db"
-        elif key == ord("s"):
-            key = "state"
-        elif key == ord("t"):
-            key = "time"
-        elif key == ord("i"):
-            key = "info"
-        elif key == ord("r"):
-            pm.del_all_filter()
-            key = None
-        else:
-            key = None
-        if key is not None:
-            scr.move(ques_pos, 0)
-            scr.clrtoeol()
-            txt_value = "Specify a value or regexp [ " + pm.get_filter(key) + " ] : "
-            scr.addstr(ques_pos, 0, 'Specify a value or regexp [ %s ] : ' % (pm.get_filter(key)))
+        self.scr.refresh()
+        column = self.scr.getstr()
+        if column is not None:
+            self.scr.move(self.ques_pos, 0)
+            self.scr.clrtoeol()
+            txt_value = "Specify a value or regexp [ " + self.pms[self.pm_index].get_filter(column) + " ] : "
+            self.scr.addstr(self.ques_pos, 0, 'Specify a value or regexp [ %s ] : ' % (self.pms[self.pm_index].get_filter(column)))
             #scr.move(3, len(txt_value))
-            value = scr.getstr()
+            value = self.scr.getstr()
             if value == "":
-                value = pm.get_filter(key)
-            pm.add_filter(key, value)
+                value = self.pms[self.pm_index].get_filter(column)
+            self.pms[self.pm_index].add_filter(column, value)
             curses.noecho()
-            scr.nodelay(1)
-            scr.refresh()
-        scr.nodelay(1)
+            self.scr.nodelay(1)
+            self.scr.refresh()
+        self.scr.nodelay(1)
         curses.noecho()
 
     def display_header(self):
@@ -484,7 +463,7 @@ class Ui(object):
             else:
                 self.scr.addstr(0, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
         if not self.pms[self.pm_index].is_online and self.pms[self.pm_index].error is not None:
-            self.scr.addstr(3, 0, 'error : %s' % (pm.error))
+            self.scr.addstr(3, 0, 'error : %s' % (self.pms[self.pm_index].error))
 
     def display_footer(self, text):
         """
@@ -509,32 +488,16 @@ class Ui(object):
         if highlight > len(self.pms[self.pm_index].process):
             highlight = len(self.pms[self.pm_index].process) - 1
         for process in self.pms[self.pm_index].process[:(max_process)]:
+            informations = []
+            for column in self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["data"]:
+                informations.append(process[column])
             if highlight is not None:
                 if highlight == (cnt - 5):
-                    if self.pms[self.pm_index].BACKEND == "linux":
-                        self.scr.addstr(cnt, 0, '%-10s %-11s %-5s %-8s %-5s' % (process["pid"], process["user"][:10], process["state"], process["time"], process["info"][:44]), curses.A_REVERSE)
-                    elif self.pms[self.pm_index].BACKEND == "redisdb":
-                        self.scr.addstr(cnt, 0, '%-11s %-5s %-8s %-5s' % (process.user, process.state, process.time, process.info[:44]), curses.A_REVERSE)
-                    elif self.pms[self.pm_index].BACKEND == "mysql":
-                        self.scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process["pid"], process["user"][:10], process["host"].split(':')[0][:15], process["db"][:20], process["state"], process["time"], process["info"][:44]), curses.A_REVERSE)
-                    else:
-                        self.scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]), curses.A_REVERSE)
+                    self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations), curses.A_REVERSE)
                 else:
-                    if self.pms[self.pm_index].BACKEND == "linux":
-                        self.scr.addstr(cnt, 0, '%-10s %-11s %-5s %-8s %-5s' % (process["pid"], process["user"][:10], process["state"], process["time"], process["info"][:44]))
-                    elif self.pms[self.pm_index].BACKEND == "redisdb":
-                        self.scr.addstr(cnt, 0, '%-11s %-5s %-8s %-5s' % (process.user, process.state, process.time, process.info[:44]))
-                    elif self.pms[self.pm_index].BACKEND == "mysql":
-                        self.scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process["pid"], process["user"][:10], process["host"].split(':')[0][:15], process["db"][:20], process["state"], process["time"], process["info"][:44]))
-                    else:
-                        self.scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]))
+                    self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations))
             else:
-                if self.pms[self.pm_index].BACKEND == "linux":
-                    self.scr.addstr(cnt, 0, '%-10s %-11s %-5s %-8s %-5s' % (process["pid"], process["user"][:10], process["state"], process["time"], process["info"][:44]))
-                elif self.pms[self.pm_index].BACKEND == "redisdb":
-                    self.scr.addstr(cnt, 0, '%-11s %-5s %-8s %-5s' % (process.user, process.state, process.time, process.info[:44]))
-                else:
-                    self.scr.addstr(cnt, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s' % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44]))
+                self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations))
             cnt += 1
 
 
@@ -553,8 +516,7 @@ class Ui(object):
         while 1:
             key = self.scr.getch()
             if key == ord("a"):
-                #Key for adding a sql connection
-                self.add_connection()
+                self.add_pm()
             elif key == ord("c"):
                 if self.pms[self.pm_index].is_online:
                     self.pms[self.pm_index].disconnect()
@@ -564,7 +526,7 @@ class Ui(object):
                     except:
                         pass
             elif key == ord(":"):
-                ask(scr, fullscreen=fullscreen)
+                self.command()
             elif key == ord("F"):
                 if self.fullscreen:
                     self.fullscreen = False
@@ -575,52 +537,30 @@ class Ui(object):
             elif key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"), ord("6"), ord("7"), ord("8"), ord("9")]:
                #All keyboard key number are used to select wich connection to display
                index = int(chr(key)) - 1
-               if index <= len(pms) - 1:
-                   pm_index = index
+               if index <= len(self.pms) - 1:
+                   self.pm_index = index
                else:
-                   scr.move(3, 0)
-                   scr.clrtoeol()
-                   scr.addstr(3, 0, "Connection %d does not exist" % (index))
+                   self.scr.move(3, 0)
+                   self.scr.clrtoeol()
+                   self.scr.addstr(3, 0, "Connection %d does not exist" % (index))
                    time.sleep(1)
             elif key == ord("q"):
                 #Key to exit mytop
                 sys.exit(0)
             elif key == ord("h"):
-                self.help()
+                self.display_help()
             elif key == curses.KEY_LEFT or key == curses.KEY_RIGHT:
                 #Key to navigate history
-                if len(pms[pm_index]._history) == 0:
-                    scr.addstr(3, 0, 'No history')
-                    time.sleep(1)
-                elif history:
-                    if key == curses.KEY_LEFT:
-                        if history_pos != 0:
-                            history_pos = history_pos - 1
-                            pms[pm_index].history(history_pos)
-                    if key == curses.KEY_RIGHT:
-                        history_pos = history_pos + 1
-                        if history_pos > len(pm._history) - 1:
-                            history = False
-                        else:
-                            pm.history(history_pos)
-                else:
-                    if key != curses.KEY_RIGHT:
-                        history = True
-                        history_pos = len(pms[pm_index]._history) - 1
-                        pms[pm_index].history(history_pos)
+                self.display_history(key)
             elif key == ord("d"):
                 #Key to change delay
-                changed_delay = change_delay(scr, fullscreen=fullscreen)
-                if changed_delay is not None:
-                    delay_counter = changed_delay
-                    delay = changed_delay
-                
+                self.edit_delay()
             elif key == ord("e"):
                 #Key to edit the current connection
-                edit_connection(scr, pm)
+                self.edit_pm()
             elif key == ord("f"):
                 #key to edit or add filter
-                add_filter(scr, pms[pm_index], fullscreen=fullscreen)
+                self.edit_filter()
             elif key == ord("k"):
                 #key to kill sql process to threads
                 scr.addstr(3, 0, 'Specify the id process to kill : ')
@@ -679,20 +619,20 @@ class Ui(object):
                 scr.erase()
             elif key == ord("p"):
                 #Key to pause mytop
-                if paused:
-                    paused = False
-                    delay_counter = delay
+                if self.paused:
+                    self.paused = False
+                    self.delay_counter = self.delay
                 else:
-                    paused = True
+                    self.paused = True
             elif key == ord("r"):
                 #key to remove connection
-                pms.remove(pms[pm_index]) 
-                if pm_index > len(pms) - 1 :
-                     pm_index = len(pms) - 1
-                if len(pms) == 0:
+                self.pms.remove(self.pms[self.pm_index]) 
+                if self.pm_index > len(self.pms) - 1 :
+                     self.pm_index = len(self.pms) - 1
+                if len(self.pms) == 0:
                      dummy_pm = sqltoplib.create_connection(backend="dummy")
-                     pms.append(dummy_pm)
-                     pm_index = 0
+                     self.pms.append(dummy_pm)
+                     self.pm_index = 0
             if self.delay_counter  > self.delay:
                 self.delay_counter = 0
                 for p in self.pms: 
@@ -724,5 +664,5 @@ class Ui(object):
                 self.scr.addstr(3, 0, 'Pause', curses.A_BLINK)
             if self.history:
                 curses.curs_set(0)
-                self.scr.addstr(3, 0, 'History (%s / %s)' % (str(history_pos), str(len(pm._history) - 1)), curses.A_BLINK)
+                self.scr.addstr(3, 0, 'History (%s / %s)' % (str(self.history_pos), str(len(self.pms[self.pm_index]._history) - 1)), curses.A_BLINK)
             time.sleep(0.1)
