@@ -17,30 +17,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-sqloptlib is a library to manipulate and get sql server process
+Linux Driver
 """
 import datetime
-import re
 import platform
 import time
 
-import processmanager
-
-try: #Try to import psutil library
-    import psutil
-except ImportError:
-     raise processmanager.ProcessManagerError("linux backend not disponible") 
+import driver
+import psutil
 
 
-class ProcessManager(processmanager.ProcessManager):
+class LinuxDriver(driver.Driver):
     """
-    A class to manipulate and get sql server process
+    Linux Driver
     """
-    def __init__(self, user, host, password, port):
-        processmanager.ProcessManager.__init__(self, user, host, password, port)
-        self.BACKEND = "linux"
+    def __init__(self):
+        driver.Driver.__init__(self)
         
-    def refresh(self):
+    def tops(self):
         """
         Refresh sql information. Including uptime and the list of running process
         """
@@ -56,19 +50,13 @@ class ProcessManager(processmanager.ProcessManager):
             p["time"] = int(pr.create_time)
             p["info"] = info
             all_process.append(p)
-        if len(self._history) > self._max_history:
-            self._history.pop(0)
-            self._history.append(self._process)
-        else:
-            self._history.append(self._process)
-        self._process = all_process
+        return all_process
+
+    def info(self):
         f = open("/proc/uptime")
         proc_uptime = float(f.read().split()[0])
         self._uptime = str(datetime.timedelta(seconds = int(proc_uptime)))
         self._version = platform.release()
-
-    def connect(self):
-        self._is_online = True
 
     def kill(self, process, signal):
         process = psutil.Process(process.pid)

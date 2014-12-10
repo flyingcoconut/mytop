@@ -17,35 +17,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-sqloptlib is a library to manipulate and get sql server process
+Plugin Driver
+
+Load an external driver
+Usefull for non official driver
 """
-import getopt
-import datetime
-import re
-import platform
-import time
+import driver
 
-import processmanager
-import process
-
-class ProcessManager(processmanager.ProcessManager):
+class PluginDriver(driver.Driver):
     """
-    A class to manipulate and get sql server process
+    Plugin Driver
     """
     def __init__(self):
-        processmanager.ProcessManager.__init__(self, user="Unknown", host="Unknown", password="", port=0)
-        self.BACKEND = "Unknown"
+        driver.Driver.__init__(self)
+        self.config.add("path", default=None, required=True, validator=None)
+        self.config.add("config", default={}, required=False, validator=dict)
         
-        
-        
-    def refresh(self):
-        """
-        Refresh sql information. Including uptime and the list of running process
-        """
-        self._process = []
-        self._uptime = "Unknown"
-        self._version = "Unknown"
-
-    def connect(self):
+    def initialize(self):
+        #Do some magic
         pass
    

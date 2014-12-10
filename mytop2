@@ -47,8 +47,7 @@ def show_usage():
     """
     Print a usage message
     """
-    print """Usage: mytop -b [BACKEND] -u [USER] -p [PASSWORD] ...
-    """
+    print """Usage: mytop -b [BACKEND] -u [USER] -p [PASSWORD] ... """
 
 def show_help():
     """

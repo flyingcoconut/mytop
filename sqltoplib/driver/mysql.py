@@ -17,42 +17,40 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-sqltoplib MySQL backend
+MySQL Driver
 """
-
 import datetime
 import re
 
-import processmanager
+import driver
+import MySQLdb
 
-try: #Try to import MySQLdb library
-    import MySQLdb
-except ImportError:
-     raise processmanager.ProcessManagerError("mysql backend not disponible")
-     
-try:
-    import sqlparse
-except ImportError:
-    pass
+class MySQLDriver(driver.Driver):
+    """
+    MySQL Driver
+    """
+    def __init__(self):
+        driver.Driver.__init__(self)
+        self.config.add("host", default="localhost", required=False, validator=str)
+        self.config.add("user", default="root", required=False, validator=str)
+        self.config.add("port", default=3306, required=False, validator=int)
+        self.config.add("password", default="", required=False, validator=str)
+        self._sql = None
 
-class ProcessManager(processmanager.ProcessManager):
-    """
-    A class to manipulate and get sql server process
-    """
-    def __init__(self, user, host, password, port):
-        processmanager.ProcessManager.__init__(self, user, host, password, port)
-        self.BACKEND = "mysql"
+    def fields(self):
+        """
+        Return all disponible fields
+        """
+        return {}
         
-    def refresh(self):
+    def tops(self):
         """
         Refresh sql information. Including uptime and the list of running process
         """
         try:
             self._sql.execute('SHOW FULL PROCESSLIST;')
         except:
-            self._is_online = False
-            self._error = "Could not retrieve process"
-            raise processmanager.ProcessManagerError("Could not retrieve process")
+            raise driver.DriverError("Could not retrieve process")
         all_process = []
         try:
             for row in self._sql.fetchall():
@@ -86,39 +84,34 @@ class ProcessManager(processmanager.ProcessManager):
                 p["info"] = query
                 all_process.append(p)
         except all as e:
-            print e
-            pass
-        if len(self._history) > self._max_history:
-            self._history.pop(0)
-            self._history.append(self._process)
-        else:
-            self._history.append(self._process)
-        self._process = all_process
+            raise DriverError(e)
+        return all_process
+
+    def info(self):
         try:
             self._sql.execute('show status where Variable_name="Uptime"')
             self._uptime = str(datetime.timedelta(seconds = int(self._sql.fetchone()[1])))
         except MySQLdb.OperationalError:
-            raise processmanager.ProcessManagerError("Could no retrive uptime")
+            raise driver.DriverError("Could no retrive uptime")
         try:
             self._sql.execute('select VERSION();')
             self._version = self._sql.fetchone()[0]
         except:
-            raise processmanager.ProcessManagerError("Could no retrive version")
+            raise driver.DriverError("Could no retrive version")
 
-    def connect(self):
+    def initialize(self):
         """
-        Connect to the sql server
+        Initialize the driver
         """
         try:
-            db = MySQLdb.connect(host=self._host, user=self._user, passwd=self._password, port=self._port)
+            db = MySQLdb.connect(host=self.config.host, user=self.config.user, passwd=self.config.password, port=self.config.port)
         except MySQLdb.OperationalError as e:
-            self._is_online = False
-            self._error = "Impossible to connect to the database serveur"
-            raise processmanager.ProcessManagerError("Impossible to connect to the database serveur")
+            raise driver.DriverError("Impossible to connect to the database serveur")
         else:
             #Create mysql object
             self._sql = db.cursor()
             self._is_online = True
+            
 
     def kill(self, process):
         """

@@ -26,10 +26,10 @@ import re
 import processmanager
 import process
 
-try: #Try to import MySQLdb library
-    import redis
+try: #Try to import mongodb library
+    import pymongo
 except ImportError:
-     raise processmanager.ProcessManagerError("redisdb backend not disponible")
+     raise processmanager.ProcessManagerError("mongodb backend not disponible") 
 
 class ProcessManager(processmanager.ProcessManager):
     """
@@ -37,21 +37,35 @@ class ProcessManager(processmanager.ProcessManager):
     """
     def __init__(self, user="root", host="localhost", password=None, port=3306):
         processmanager.ProcessManager.__init__(self, user, host, password, port)
-        self.BACKEND = "redisdb"
         
     def refresh(self):
         """
         Refresh sql information. Including uptime and the list of running process
         """
         try:
-            redis_process = self._sql.client_list()
+            mongodb_process = self._sql.admin['$cmd.sys.inprog'].find_one({'$all': True}) 
         except:
-            self._is_online = False
             raise processmanager.ProcessManagerError("Could not retieve process")
         all_process = []
         try:
-            for row in redis_process:     
-                p = process.Process(1, "", row["addr"].split(':')[0], row["db"], row["flags"], row["age"], row["cmd"])
+            for row in mongodb_process[u"inprog"]:
+                if row[u"active"]:
+                    time = row[u"secs_running"]
+                else:
+                    time = 0
+                if row[u"op"] == "insert":
+                    state = "I"
+                elif row[u"op"] == "query":
+                    state = "Q"
+                elif row[u"op"] == "update":
+                    state = "U"
+                elif row[u"op"] == "remove":
+                    state = "R"
+                elif row[u"op"] == "getmore":
+                    state = "G"
+                elif row[u"op"] == "command":
+                    state = "C"
+                p = process.Process(row["opid"], "", row[u"client"].split(':')[0], row[u"ns"].split(".")[0], state, time, str(row[u"query"]))
                 all_process.append(p)
         except all as e:
             print e
@@ -62,26 +76,27 @@ class ProcessManager(processmanager.ProcessManager):
         else:
             self._history.append(self._process)
         self._process = all_process
-        try:
-            redis_stats = self._sql.info()
-            self._version = redis_stats["redis_version"]
-            self._uptime = str(datetime.timedelta(seconds = redis_stats["uptime_in_seconds"]))
-        except:
-            raise processmanager.ProcessManagerError("Could no retrive uptime")
+        #try:
+        #    self._sql.execute('show status where Variable_name="Uptime"')
+        #    self._uptime = str(datetime.timedelta(seconds = int(self._sql.fetchone()[1])))
+        #except MySQLdb.OperationalError:
+        #    raise processmanager.ProcessManagerError("Could no retrive uptime")
+        #try:
+        #    self._sql.execute('select VERSION();')
+        #    self._version = self._sql.fetchone()[0]
+        #except:
+        #    raise processmanager.ProcessManagerError("Could no retrive version")
 
     def connect(self):
         """
         Connect to the sql server
         """
-        try:
-            db = redis.StrictRedis(host=self._host, db=0)
-        except all as e:
-            self._is_online = False
-            raise processmanager.ProcessManagerError("Impossible to connect to the database serveur")
-        else:
+        db = pymongo.MongoClient(host=self._host, port=self._port)
+#        except MySQLdb.OperationalError as e:
+#            raise processmanager.ProcessManagerError("Impossible to connect to the database serveur")
+#        else:
             #Create mysql object
-            self._sql = db
-            self._is_online = True
+        self._sql = db
 
     def kill(self, pid):
         """

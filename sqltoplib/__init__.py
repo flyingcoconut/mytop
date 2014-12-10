@@ -18,6 +18,27 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 sqloptlib is a library to manipulate and get sql server process
+
+Structure
+
+Ui
+ - Expose results
+ - http, ncurse, cmd, etc
+
+SessionManager
+ - Expose all sessions
+
+Session
+ - Expose driver
+ - Cache history
+ - filters
+ - orders
+ - additional function
+ - Maybe threaded
+
+Driver
+ - Grab data
+
 """
 
 import datetime
@@ -25,12 +46,70 @@ import pwd
 import os
 
 DISPONIBLE_BACKEND = ["mysql", "redisdb", "linux", "mongodb"]
+DISPONIBLE_DRIVERS = ["mysql", "redisdb", "linux", "mongodb"]
 
     
-try:
-    import dummy
-except all as e:
-    pass
+class Session(object):
+    def __init__(self, driver, config):
+        self.driver = driver
+        self.config = config
+        self.filters = []
+        self.history = []
+
+    def start(self):
+        """
+        Start session
+        """
+        pass
+
+    def stop(self):
+        """
+        Stop session
+        """
+        pass
+
+    def tops(self):
+        pass
+
+    def info(self):
+        pass
+
+    def additional(self):
+        pass
+
+
+class VTS(object):
+    """
+    Virtual Top System class
+    """
+    def __init__(self):
+        self.current = None
+        self.sessions = []
+
+    def info(self):
+        pass
+
+    def tops(self):
+        pass
+
+    def remove(self):
+        """
+        Add a session
+        """
+        pass
+
+    def add(self):
+        """
+        Remove a session
+        """
+        pass
+
+    def enable(self):
+        pass
+
+    def disable(self):
+        pass
+
 
 
 class ConfigError(Exception):
@@ -42,6 +121,7 @@ class ConfigError(Exception):
         Exception.__init__(self, value)
     def __str__(self):
         return repr(self.value)
+
 
 class Config(object):
     """
@@ -102,55 +182,4 @@ class Config(object):
                 line = line.split("=")
                 self._configs[line[0].strip()] = line[1].strip()
         config_file.close()
-
-def create_connection(backend=None, user=None, host="localhost", password=None, port=None):
-    if backend == "mysql":
-        try:
-            import mysql
-        except ImportError:
-            raise ImportError
-        if user is None:
-            user = "root"
-        elif host is None:
-            host = "localhost"
-        elif password is None:
-            password = ""
-        elif port is None:
-            port = 3306
-        conn = mysql.ProcessManager(user, host, password, port)
-        return conn
-    elif backend == "redisdb":
-        try:
-            import redisdb
-        except ImportError:
-            raise ImportError
-        if host is None:
-            host = "localhost"
-        elif port is None:
-            port = 6379
-        elif password is None:
-            password = ""
-        user = "None"
-        conn = redisdb.ProcessManager(user, host, password, port)
-        return conn
-    elif backend == "mongodb":
-        try:
-            import mongodb
-        except ImportError:
-            raise ImportError
-        conn = mongodb.ProcessManager(user, host, password, port)
-        return conn
-    elif backend == "linux":
-        try:
-            import linux
-        except ImportError:
-            raise ImportError
-        user = pwd.getpwuid(os.getuid())[0]
-        host = "localhost"
-        port = "None"
-        conn = linux.ProcessManager(user, host, password, port)
-        return conn
-    elif backend == "dummy":
-        conn = dummy.ProcessManager()
-        return conn
 
