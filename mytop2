@@ -21,21 +21,13 @@ import os
 import sys
 import curses
 import signal
-import getopt
-import json
+import argparse
 
 import sqltoplib
 import ui
 
 
 VERSION = "0.0.2"
-
-def set_procname(newname):
-    from ctypes import cdll, byref, create_string_buffer
-    libc = cdll.LoadLibrary('libc.so.6')    #Loading a 3rd party library C
-    buff = create_string_buffer(len(newname)+1) #Note: One larger than the name (man prctl says that)
-    buff.value = newname                 #Null terminated string as it should be
-    libc.prctl(15, byref(buff), 0, 0, 0) #Refer to "#define" of "/usr/include/linux/prctl.h" for the misterious value 16 & arg[3..5] are zero as the man page says.
 
 def signal_handler(sig, frame):
     """
@@ -57,15 +49,11 @@ def show_help():
 Example: mytop -u root -h localhost -p password
 
 Options:
-  -b, --backend=BACKEND     set the backend (mysql, mongodb, pgsql)
-  -c, --config=PATH         set config file path
+  -c, --config              set config keyword (host:127.0.0.1)
+  -d, --driver=DRIVER       select driver
   -F                        fullscreen mode
-  -h, --host=HOSTNAME       set hostname
   -H, --history=LENGTH      set history length (eg. 10)
   -l, --list                list all backend
-  -p, --password=PASSWORD   set password
-  -P, --port=PORT           set port number
-  -u, --user=USERNAME       set username
 
 Miscellaneous:
   -V, --version         print version information and exit
@@ -73,63 +61,7 @@ Miscellaneous:
 
 Report bugs to: patrick.charron.pc@gmail.com"""
 
-def arg_parser():
-    """
-    Function to parse command line arguments
-    """
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "b:Fh:lp:P:u:V", ["backend=", "host=", "list", "password=", "port=", "user=", "version", "help"])
-    except getopt.GetoptError, err:
-        # print help information and exit:
-        show_usage()
-        print str(err) # will print something like "option -a not recognized"
-        sys.exit(1)
-    options = {}
-    options["host"] = "localhost"
-    options["password"] = None
-    options["port"] = 0
-    options["user"] = None
-    options["backend"] = None
-    options["fullscreen"] = False
-    for o, a in opts:
-        if o in ("-b", "--backend"):
-            options["backend"] = a
-        elif o == "-F":
-        	   options["fullscreen"] = True
-        elif o in ("-h", "--host"):
-            options["host"] = a
-        elif o in ("-l", "--list"):
-            for backend in sqltoplib.DISPONIBLE_BACKEND:
-                print backend
-            sys.exit(0)
-        elif o in ("-p", "--password"):
-            options["password"] = a
-        elif o in ("-P", "--port"):
-            options["port"] = int(a)
-        elif o in ("-u", "--user"):
-            options["user"] = a
-        elif o in ("-V", "--version"):
-            print "Version %s" % VERSION
-            sys.exit(0)
-        elif o == "--help":
-            show_usage()
-            show_help()
-            sys.exit(0)
-        else:
-            show_usage()
-            sys.exit(1)
-
-#    f = open("formatdb")
-#    text = f.read()
-#    f.close()
-#    data = json.loads(text)
-#    options["formatdb"] = data
-
-    if options["backend"] not in sqltoplib.DISPONIBLE_BACKEND and options["backend"] is not None:
-        print "is not a valid type"
-        sys.exit(1)
-    return options
-    
+   
 
 def init_ui(scr):
     u = ui.Ui(scr)
@@ -139,10 +71,6 @@ def init_ui(scr):
 
 
 if __name__ == '__main__':
-    try:
-        set_procname("mytop")
-    except:
-        pass
     #Initialise signal to catch SIGINT
     signal.signal(signal.SIGINT, signal_handler)
     #Call the parser function

@@ -22,17 +22,13 @@ import curses
 import datetime
 import sys
 
-try: #try to import sqltoplib
-    import sqltoplib
-except ImportError:
-    print "sqltoplib library is missing"
-    sys.exit(1)
+import sqltoplib
 
 class Ui(object):
     """
     The ui class
     """
-    def __init__(self, scr):
+    def __init__(self, scr, session = None):
         self.fulscreen = False
         self.extension = False
         self.pms = []

@@ -21,13 +21,11 @@ import sys
 import signal
 import getopt
 import datetime
+import argparse
 
+from tabulate import tabulate
 
-try: #try to import sqltoplib
-    import sqltoplib
-except ImportError:
-    print "sqltoplib library is missing"
-    sys.exit(1)
+from sqltoplib import drivers
 
 VERSION = "0.0.1"
 
@@ -47,92 +45,57 @@ def show_usage():
 def show_help():
     """Print a help message"""
     print """Database process viewer
-Example: myps -u root -h localhost -p password --type mysql
+Example: myps --driver mysql --config host:127.0.0.1,port:3306
 
 Options:
-  -b, --BACKEND=BACKEND     set the backend type (mysql, mongodb, pgsql)
-  -h, --host=HOSTNAME       set hostname
+  -d, --driver=DRIVER       select driver
   -l, --list                list all type
-  -p, --password=PASSWORD   set password
-  -P, --port=PORT           set port number
-  -u, --user=USERNAME       set username
+  -c, --config              set config keyword (host:127.0.0.1)
 
 Miscellaneous:
   -V, --version         print version information and exit
-  --help                display this help and exit
+  -h, --help                display this help and exit
 
 Report bugs to: patrick.charron.pc@gmail.com"""
 
-def arg_parser():
-    """
-    Function to parse command line arguments
-    """
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "b:h:lp:P:u:V", ["backend=", "host=", "list", "password=", "port=", "user=", "version", "help"])
-    except getopt.GetoptError, err:
-        # print help information and exit:
-        show_usage()
-        print str(err) # will print something like "option -a not recognized"
-        sys.exit(1)
-    options = {}
-    options["host"] = "localhost"
-    options["password"] = None
-    options["port"] = 0
-    options["user"] = None
-    options["backend"] = None
-    for o, a in opts:
-        if o in ("-b", "--backend"):
-            options["backend"] = a
-        elif o in ("-h", "--host"):
-            options["host"] = a
-        elif o in ("-l", "--list"):
-            for backend in sqltoplib.DISPONIBLE_BACKEND:
-                print backend
-            sys.exit(0)
-        elif o in ("-p", "--password"):
-            options["password"] = a
-        elif o in ("-P", "--port"):
-            options["port"] = int(a)
-        elif o in ("-u", "--user"):
-            options["user"] = a
-        elif o in ("-V", "--version"):
-            print "Version %s" % VERSION
-            sys.exit(0)
-        elif o == "--help":
-            show_usage()
-            show_help()
-            sys.exit(0)
-        else:
-            show_usage()
-            sys.exit(1)
-    if options["backend"] is None:
-        print "no type specified"
-        sys.exit(1)
-    if options["backend"] not in sqltoplib.DISPONIBLE_BACKEND:
-        print "is not a valid type"
-        sys.exit(1)
-    return options
-
-def main(pm=None):
-    pm.refresh()
-    print "%-10s %-11s %-15s %-20s %-5s %-8s %-5s" % ('ID', 'USER', 'HOST', 'DB', 'STATE', 'TIME', 'INFO')
-    for process in pm.process:
-        print "%-10s %-11s %-15s %-20s %-5s %-8s %-5s" % (process.pid, process.user[:10], process.host.split(':')[0][:15], process.db[:20], process.state, process.time, process.info[:44])
+def main(driver):
+    #print "%-10s %-11s %-15s %-20s %-5s %-8s %-5s" % ('ID', 'USER', 'HOST', 'DB', 'STATE', 'TIME', 'INFO')
+    #for item in tops:
+    #    print(item)
+    fields = driver.fields()
+    tops = driver.tops()
+    data = []
+    header = []
+    for i in fields:
+        header.append(i)
+    for item in tops:
+        line = []
+        for i in item:
+            line.append(item[i])
+        data.append(line)
+    print(tabulate(data, numalign="right", floatfmt=".0f", headers=header))
 
 
 
 if __name__ == '__main__':
     #Initialise signal to catch SIGINT
     signal.signal(signal.SIGINT, signal_handler)
-    #Call the parser function
-    args = arg_parser()
-    #Try to connect to the MySQL server
-    pm = sqltoplib.create_connection(backend=args["backend"], host=args["host"], user=args["user"], password=args["password"], port=args["port"])
-    try:
-        pm.connect()
-    except sqltoplib.processmanager.ProcessManagerError as e:
-        print e
-        sys.exit(1)
-    main(pm)
+    parser = argparse.ArgumentParser(description='emailsync is an email synchronisation tool')
+    parser.add_argument('--driver', "-d", metavar='DRIVER', nargs="?", help='driver name')
+    parser.add_argument('--config', "-c", metavar='CONFIG', nargs="?", help='configuration')
+    parser.add_argument('--list', "-l",  metavar='SEC', type=int, default=1, nargs="?", help='refresh interval in second')
+    parser.add_argument('--version', action='version', version='%(prog)s 0.1')
+    args = parser.parse_args()
+    if args.driver == "mysql":
+        driver = drivers.mysql.MySQLDriver()
+    elif args.driver == "linux":
+        driver = drivers.linux.LinuxDriver()
+    config = {}
+    for line in args.config.split(","):
+        config[line.split(":")[0]] = line.split(":")[1]
+    
+    driver.configure(config)
+    driver.initialize()
+    main(driver)
 
 

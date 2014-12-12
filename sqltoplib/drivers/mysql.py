@@ -41,7 +41,15 @@ class MySQLDriver(driver.Driver):
         """
         Return all disponible fields
         """
-        return {}
+        fields = {}
+        fields["pid"] = int
+        fields["user"] = str
+        fields["host"] = str
+        fields["db"] = str
+        fields["state"] = str
+        fields["time"] = str
+        fields["info"] = str
+        return fields
         
     def tops(self):
         """
@@ -127,5 +135,6 @@ class MySQLDriver(driver.Driver):
         Explain a mysql query
         """
         print "todo"
-   
+
+drivers = {"mysql": MySQLDriver}
 

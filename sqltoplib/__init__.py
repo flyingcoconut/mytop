@@ -35,6 +35,7 @@ Session
  - orders
  - additional function
  - Maybe threaded
+ - Type system
 
 Driver
  - Grab data
@@ -42,37 +43,53 @@ Driver
 """
 
 import datetime
-import pwd
 import os
+import time
 
-DISPONIBLE_BACKEND = ["mysql", "redisdb", "linux", "mongodb"]
-DISPONIBLE_DRIVERS = ["mysql", "redisdb", "linux", "mongodb"]
+import drivers
 
+
+class History(object):
+    def __init__(self, lenght=0):
+        self.lenght = lenght
+        self._items = []
     
+    def add(self, items):
+        self._items[time.time()] = items
+
+    def get(self):
+        pass
+
 class Session(object):
-    def __init__(self, driver, config):
+    def __init__(self, driver, config, history=10):
         self.driver = driver
         self.config = config
         self.filters = []
-        self.history = []
+        self.history = History(history)
 
     def start(self):
         """
-        Start session
+        Start the session
         """
-        pass
+        self.driver.configure(self.config)
+        self.driver.initialize()
 
     def stop(self):
         """
-        Stop session
+        Stop the session
         """
-        pass
+        self.driver.terminate()
 
     def tops(self):
-        pass
+        items = self.driver.tops()
+        self.history.add(items)
+        return items
+
+    def fields(self):
+        return self.driver.fields()
 
     def info(self):
-        pass
+        return self.driver.info()
 
     def additional(self):
         pass

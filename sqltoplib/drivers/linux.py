@@ -33,6 +33,18 @@ class LinuxDriver(driver.Driver):
     """
     def __init__(self):
         driver.Driver.__init__(self)
+
+    def fields(self):
+        """
+        Return all disponible fields
+        """
+        fields = {}
+        fields["pid"] = int
+        fields["user"] = str
+        fields["state"] = str
+        fields["time"] = str
+        fields["info"] = str
+        return fields
         
     def tops(self):
         """
@@ -43,20 +55,25 @@ class LinuxDriver(driver.Driver):
         for pr in linux_process:
             info = pr.name + " " + " ".join(pr.cmdline)
             p = {}
-            p["pid"] = pr.pid
-            p["user"] = pr.username
-            p["host"] = "localhost"
+            p["pid"] = int(pr.pid)
+            p["user"] = str(pr.username)
             p["state"] = "s"
             p["time"] = int(pr.create_time)
-            p["info"] = info
+            p["info"] = str(info)
             all_process.append(p)
         return all_process
 
     def info(self):
+        info = {}
         f = open("/proc/uptime")
         proc_uptime = float(f.read().split()[0])
-        self._uptime = str(datetime.timedelta(seconds = int(proc_uptime)))
-        self._version = platform.release()
+        f.close()
+        info["uptime"] = str(datetime.timedelta(seconds = int(proc_uptime)))
+        info["swap"] = psutil.swap_memory()
+        info["load"] = psutil.os.getloadavg()
+        info["version"] = platform.release()
+        return info
+        
 
     def kill(self, process, signal):
         process = psutil.Process(process.pid)
@@ -66,3 +83,5 @@ class LinuxDriver(driver.Driver):
         process = psutil.Process(process.pid)
         process.set_nice(nice)
    
+
+drivers = {"linux:process" : LinuxDriver}
