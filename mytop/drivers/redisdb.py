@@ -16,12 +16,10 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-Redis Driver
-"""
+"""Redis Driver"""
 import datetime
 
-import driver
+from .. import driver
 import redis
 
 class RedisDriver(driver.Driver):

@@ -23,8 +23,8 @@ import curses
 import signal
 import argparse
 
-import sqltoplib
-import ui
+import mytop
+from mytop import ui
 
 
 VERSION = "0.0.2"

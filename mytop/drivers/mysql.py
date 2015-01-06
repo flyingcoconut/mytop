@@ -16,19 +16,14 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-MySQL Driver
-"""
+"""MySQL Driver"""
 import datetime
-import re
 
-import driver
+from .. import driver
 import MySQLdb
 
 class MySQLDriver(driver.Driver):
-    """
-    MySQL Driver
-    """
+    """MySQL Driver"""
     def __init__(self):
         driver.Driver.__init__(self)
         self.config.add("host", default="localhost", required=False, validator=str)
@@ -38,9 +33,7 @@ class MySQLDriver(driver.Driver):
         self._sql = None
 
     def fields(self):
-        """
-        Return all disponible fields
-        """
+        """Return all disponible fields"""
         fields = {}
         fields["pid"] = int
         fields["user"] = str
@@ -52,9 +45,7 @@ class MySQLDriver(driver.Driver):
         return fields
         
     def tops(self):
-        """
-        Refresh sql information. Including uptime and the list of running process
-        """
+        """Refresh sql list of running process"""
         try:
             self._sql.execute('SHOW FULL PROCESSLIST;')
         except:
@@ -108,9 +99,7 @@ class MySQLDriver(driver.Driver):
             raise driver.DriverError("Could no retrive version")
 
     def initialize(self):
-        """
-        Initialize the driver
-        """
+        """Initialize the driver"""
         try:
             db = MySQLdb.connect(host=self.config.host, user=self.config.user, passwd=self.config.password, port=self.config.port)
         except MySQLdb.OperationalError as e:
@@ -118,7 +107,10 @@ class MySQLDriver(driver.Driver):
         else:
             #Create mysql object
             self._sql = db.cursor()
-            self._is_online = True
+
+    def terminate(self):
+        """Terminate connection"""
+        self._sql.close()
             
 
     def kill(self, process):
@@ -135,6 +127,4 @@ class MySQLDriver(driver.Driver):
         Explain a mysql query
         """
         print "todo"
-
-drivers = {"mysql": MySQLDriver}
 

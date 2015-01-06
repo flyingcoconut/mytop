@@ -77,10 +77,9 @@ class MongoDBDriver(driver.Driver):
         self._version = mongodb_stats["version"]
 
     def initialize(self):
-        """
-        Connect to the MongoDB server
-        """
-        db = pymongo.MongoClient(host=self._host, port=self._port)
+        """Connect to the MongoDB server"""
+        try:
+            db = pymongo.MongoClient(host=self._host, port=self._port)
         except MySQLdb.OperationalError as e:
             raise driver.DriverError("Impossible to connect to the database serveur")
         self._sql = db

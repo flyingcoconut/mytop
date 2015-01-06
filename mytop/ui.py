@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
-# Description : SQL process viewer
-#  
+# Description : Tops viewer
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -13,7 +13,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -22,17 +22,15 @@ import curses
 import datetime
 import sys
 
-import sqltoplib
+import mytop
+from mytop import drivers
 
 class Ui(object):
-    """
-    The ui class
-    """
+    """The ui class"""
     def __init__(self, scr, session = None):
         self.fulscreen = False
         self.extension = False
-        self.pms = []
-        self.pm_index = 0
+        self.sessions_manager = mytop.SessionsManager()
         #self.maxInfo = (max_x-75)
         self.delay_counter = 1
         self.delay = 1
@@ -41,18 +39,25 @@ class Ui(object):
         self.history_pos = 0
         self.cursor_pos = 0
         self.cursor_max_pos = 0
-        self.pm_index = 0
-        self.pms = [sqltoplib.create_connection(backend="dummy")]
         self.fullscreen = False
         self.extension = False
         self.scr = scr
         self.formatdb = None
 
+    def record(self):
+        """Record a session"""
+        pass
+
+    def play(self):
+        """Play a session"""
+        pass
+
+    def save_session(self):
+        """Save session information"""
+        pass
 
     def write_to_file(self):
-        """
-        Write process to file in a csv format
-        """
+        """Write process to file in a csv format"""
         scr.addstr(3, 0, 'Write to : ')
         scr.move(3, 11)
         scr.nodelay(0)
@@ -141,7 +146,7 @@ class Ui(object):
         command = self.scr.getstr()
         if command == "backend":
             response = "List of disponible backend\n\n"
-            for backend in sqltoplib.DISPONIBLE_BACKEND:
+            for backend in mytop.DISPONIBLE_BACKEND:
                 response = response + backend + "\n"
         elif command == "help":
             response = """ List of disponible command\n\n
@@ -149,10 +154,10 @@ class Ui(object):
      load                       Load connection
      save                       save current connection
      help                       Display this help
-     filter <column> <regex>    
+     filter <column> <regex>
      quit                       Quit
     """
-            
+
         elif command == "quit":
             sys.exit(0)
         self.scr.erase()
@@ -164,10 +169,8 @@ class Ui(object):
         self.scr.nodelay(1)
         curses.noecho()
 
-    def add_pm(self):
-        """
-        Add a process manager
-        """
+    def add_session(self):
+        """Add session"""
         (max_y, max_x) = self.scr.getmaxyx()
         if self.fullscreen:
              ques_pos = max_y - 1
@@ -177,126 +180,41 @@ class Ui(object):
         curses.echo()
         self.scr.move(ques_pos, 0)
         self.scr.clrtoeol()
-        self.scr.addstr(ques_pos, 0, "backend : ")
+        self.scr.addstr(ques_pos, 0, "driver : ")
         value = self.scr.getstr()
         if value != "":
-            if value in sqltoplib.DISPONIBLE_BACKEND:
-                backend = value
+            if value in drivers.list_drivers():
+                driver = drivers.load(value)
             else:
                 self.scr.move(ques_pos, 0)
                 self.scr.clrtoeol()
-                self.scr.addstr(ques_pos, 0, 'Backend is not valid')
+                self.scr.addstr(ques_pos, 0, 'driver is not valid')
                 self.scr.refresh()
                 time.sleep(1)
-                return None
-        if backend == "mysql":
+                return
+        configs = {}
+        for conf in driver.config.configs:
             self.scr.move(ques_pos, 0)
             self.scr.clrtoeol()
-            self.scr.addstr(ques_pos, 0, "host [localhost] : ")
+            self.scr.addstr(ques_pos, 0, conf.name + " : ")
+            self.scr.refresh()
             value = self.scr.getstr()
-            if value is "":
-                host = "localhost"
-            else:
-                host = value
-            self.scr.move(ques_pos, 0)
-            self.scr.clrtoeol()
-            self.scr.addstr(ques_pos, 0, "user [root] : ")
-            value = self.scr.getstr()
-            if value is "":
-                user = "root"
-            else:
-                user = value
-            self.scr.move(ques_pos, 0)
-            self.scr.clrtoeol()
-            self.scr.addstr(ques_pos, 0, "port [3306] : ")
-            value = self.scr.getstr()
-            if value is "":
-                port  = 3306
-            else:
-                port = int(value)
-            self.scr.move(ques_pos, 0)
-            self.scr.clrtoeol()
-            curses.noecho()
-            self.scr.addstr(ques_pos, 0, "password : ")
-            value = self.scr.getstr()
-            password = value
-            new_pm = sqltoplib.create_connection(backend=backend, host=host, user=user, port=port, password=password)
-        elif backend == "redisdb":
-            scr.move(ques_pos, 0)
-            scr.clrtoeol()
-            scr.addstr(ques_pos, 0, "host [localhost] : ")
-            value = scr.getstr()
-            if value is "":
-                host = "localhost"
-            else:
-                host = value
-            scr.move(ques_pos, 0)
-            scr.clrtoeol()
-            scr.addstr(ques_pos, 0, "port [6379] : ")
-            value = scr.getstr()
-            if value is "":
-                port  = 6379
-            else:
-                port = int(value)
-            scr.move(ques_pos, 0)
-            scr.clrtoeol()
-            curses.noecho()
-            scr.addstr(ques_pos, 0, "password : ")
-            value = scr.getstr()
-            password = value
-            new_pm = sqltoplib.create_connection(backend=backend, host=host, port=port, password=password)
-        elif backend == "linux":
-            new_pm = sqltoplib.create_connection(backend=backend)
-        else:
-            scr.move(ques_pos, 0)
-            scr.clrtoeol()
-            scr.addstr(ques_pos, 0, "host [localhost] : ")
-            value = scr.getstr()
-            if value is "":
-                host = "localhost"
-            else:
-                host = value
-            scr.move(ques_pos, 0)
-            scr.clrtoeol()
-            scr.addstr(ques_pos, 0, "user : ")
-            value = scr.getstr()
-            user = value
-            scr.move(ques_pos, 0)
-            scr.clrtoeol()
-            scr.addstr(ques_pos, 0, "port : ")
-            value = scr.getstr()
-            port = int(value)
-            scr.move(ques_pos, 0)
-            scr.clrtoeol()
-            curses.noecho()
-            scr.addstr(ques_pos, 0, "password : ")
-            value = scr.getstr()
-            password = value
-            new_pm = sqltoplib.create_connection(backend=backend, host=host, user=user, port=port, password=password)
-        try:
-            new_pm.connect()
-        except sqltoplib.processmanager.ProcessManagerError:
-            pass
-        if new_pm is not None:
-            if self.pms[self.pm_index].BACKEND == "Unknown":
-                self.pms.remove(self.pms[self.pm_index])
-            self.pms.append(new_pm)
-            self.pm_index = len(self.pms) - 1
-        self.scr.nodelay(1)
-        curses.noecho()
+            configs[conf.name] = value
+        session = mytop.Session(driver, configs)
+        session.start()
+        self.sessions_manager.add(session)
+
 
     def display_help(self):
-        """
-        Display help
-        """
+        """Display help"""
         help_text = """
      Keyboard shortcut
-     
+
      [a]dd          Add a new process manager
      [c]onnect      Connect or disconnect
      [d]elay        Modify delay between refresh
      [e]dit         Edit current connection
-     [E]xtension    Display extended functionality  
+     [E]xtension    Display extended functionality
      [f]ilter       Filter process
      [F]ullscreen   Display in fullscreen mode
      [i]nfo         Get complete info on process
@@ -305,10 +223,10 @@ class Ui(object):
      [r]emove       Remove current connection
      [s]tats        Get complete stats about current process manager
      [w]rite        Write process to a csv file
-     [h]elp         Display this help 
+     [h]elp         Display this help
      [q]uit         Quit
      [:]            Command
-     
+
      Use up and down arrow to select process
      Use left and right arrow to navigate history
         """
@@ -344,56 +262,8 @@ class Ui(object):
                 self.history_pos = len(self.pms[self.pm_index]._history) - 1
                 self.pms[self.pm_index].history(self.history_pos)
 
-    def edit_pm(self):
-        """
-        Edit a process manager
-        """
-        reload_pm = False
-        self.scr.nodelay(0)
-        curses.echo()
-        self.scr.move(3, 0)
-        self.scr.clrtoeol()
-        self.scr.addstr(3, 0, "host [ %s ] : " % (pm.host))
-        value = scr.getstr()
-        if value != "":
-            pm.host = value
-            reload_pm = True
-        scr.move(3, 0)
-        scr.clrtoeol()
-        scr.addstr(3, 0, "user [ %s ] : " % (pm.user))
-        value = scr.getstr()
-        if value != "":
-            pm.user = value
-            reload_pm = True
-        scr.move(3, 0)
-        scr.clrtoeol()
-        scr.addstr(3, 0, "port [ %s ] : " % (pm.port))
-        value = scr.getstr()
-        if value != "":
-            pm.port = int(value)
-            reload_pm = True
-        scr.move(3, 0)
-        scr.clrtoeol()
-        curses.noecho()
-        scr.addstr(3, 0, "password : ")
-        value = scr.getstr()
-        if value != "":
-            pm.password = value
-            reload_pm = True
-
-        if reload_pm:
-            pm.close()
-            try:
-                pm.connect()
-            except:
-                pass
-        scr.nodelay(1)
-        curses.noecho()
-
-    def display_details(self):
-        """
-        Display all info about a process
-        """
+    def edit_session(self):
+        """Edit a process manager"""
         pass
 
     def edit_filter(self):
@@ -425,54 +295,48 @@ class Ui(object):
         curses.noecho()
 
     def display_header(self):
-        """
-        Display header info
-
-        """
-        (max_y, max_x) = self.scr.getmaxyx()
-        if not self.fullscreen:
-            total_task = 0
-            filtered_task = 0
-            if len(self.pms[self.pm_index]._filter) > 0:
-                total_task = len(self.pms[self.pm_index]._process)
-                filtered_task = len(self.pms[self.pm_index].process)
-            else:
-                total_task = len(self.pms[self.pm_index].process)
-            if self.pms[self.pm_index].is_online:
-                status = "Online"
-            else:
-                status = "Offline"
-            self.scr.addstr(0, 0, "Tasks : %s Total, %s filtered, Conn : %d / %d" % (str(total_task), str(filtered_task), self.pm_index + 1, len(self.pms)))
-            self.scr.addstr(1, 0, 'User : %s, Host : %s, Port : %s, Uptime : %s' % (self.pms[self.pm_index].user[:10], self.pms[self.pm_index].host[:15], self.pms[self.pm_index].port, self.pms[self.pm_index].uptime))
-            self.scr.addstr(2, 0, 'backend : %s, Version : %s, Status : %s' % (self.pms[self.pm_index].BACKEND, self.pms[self.pm_index].version, status))
-            if self.pms[self.pm_index].BACKEND == "linux":
-                self.scr.addstr(4, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
-            elif self.pms[self.pm_index].BACKEND == "Unknown":
-                self.scr.addstr(4, 0, '%s' % (' '*(max_x)), curses.A_BOLD|curses.A_REVERSE)
-            else:
-                self.scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
-        else:
-            if self.pms[self.pm_index].BACKEND == "linux":
-                self.scr.addstr(0, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
-            elif self.pms[self.pm_index].BACKEND == "Unknown":
-                self.scr.addstr(0, 0, '%s' % (' '*(max_x)), curses.A_BOLD|curses.A_REVERSE)
-            else:
-                self.scr.addstr(0, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
-        if not self.pms[self.pm_index].is_online and self.pms[self.pm_index].error is not None:
-            self.scr.addstr(3, 0, 'error : %s' % (self.pms[self.pm_index].error))
+        """Display header info"""
+        #(max_y, max_x) = self.scr.getmaxyx()
+        #if not self.fullscreen:
+        #    total_task = 0
+        #    filtered_task = 0
+        #    if len(self.pms[self.pm_index]._filter) > 0:
+        #        total_task = len(self.pms[self.pm_index]._process)
+        #        filtered_task = len(self.pms[self.pm_index].process)
+        #    else:
+        #        total_task = len(self.pms[self.pm_index].process)
+        #    if self.pms[self.pm_index].is_online:
+        #        status = "Online"
+        #    else:
+        #        status = "Offline"
+        #    self.scr.addstr(0, 0, "Tasks : %s Total, %s filtered, Conn : %d / %d" % (str(total_task), str(filtered_task), self.pm_index + 1, len(self.pms)))
+        #    self.scr.addstr(1, 0, 'User : %s, Host : %s, Port : %s, Uptime : %s' % (self.pms[self.pm_index].user[:10], self.pms[self.pm_index].host[:15], self.pms[self.pm_index].port, self.pms[self.pm_index].uptime))
+        #    self.scr.addstr(2, 0, 'backend : %s, Version : %s, Status : %s' % (self.pms[self.pm_index].BACKEND, self.pms[self.pm_index].version, status))
+        #    if self.pms[self.pm_index].BACKEND == "linux":
+        #        self.scr.addstr(4, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
+        #    elif self.pms[self.pm_index].BACKEND == "Unknown":
+        #        self.scr.addstr(4, 0, '%s' % (' '*(max_x)), curses.A_BOLD|curses.A_REVERSE)
+        #    else:
+        #        self.scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
+        #else:
+        #    if self.pms[self.pm_index].BACKEND == "linux":
+        #        self.scr.addstr(0, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
+        #    elif self.pms[self.pm_index].BACKEND == "Unknown":
+        #        self.scr.addstr(0, 0, '%s' % (' '*(max_x)), curses.A_BOLD|curses.A_REVERSE)
+        #    else:
+        #        self.scr.addstr(0, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
+        #if not self.pms[self.pm_index].is_online and self.pms[self.pm_index].error is not None:
+        #    self.scr.addstr(3, 0, 'error : %s' % (self.pms[self.pm_index].error))
+        pass
 
     def display_footer(self, text):
-        """
-        Display footer mainly for action choice from user
-        """ 
+        """Display footer mainly for action choice from user"""
         (max_y, max_x) = self.scr.getmaxyx()
         self.scr.addstr(max_y-1, 0, '%s' % (text), curses.A_BOLD | curses.A_REVERSE)
         self.scr.hline(max_y-1, len(text), " ", max_x, curses.A_BOLD | curses.A_REVERSE)
 
     def display_process(self):
-        """
-        Display process to screen
-        """
+        """Display tops to screen"""
         (max_y, max_x) = self.scr.getmaxyx()
         if self.fullscreen:
            cnt = 1
@@ -480,28 +344,25 @@ class Ui(object):
         else:
            cnt = 5
            max_process = max_y-6
-        highlight = self.cursor_pos
-        if highlight > len(self.pms[self.pm_index].process):
-            highlight = len(self.pms[self.pm_index].process) - 1
-        for process in self.pms[self.pm_index].process[:(max_process)]:
-            informations = []
-            for column in self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["data"]:
-                informations.append(process[column])
-            if highlight is not None:
-                if highlight == (cnt - 5):
-                    self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations), curses.A_REVERSE)
-                else:
-                    self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations))
-            else:
-                self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations))
-            cnt += 1
+
+        #for process in self.pms[self.pm_index].process[:(max_process)]:
+        #    informations = []
+        #    for column in self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["data"]:
+        #        informations.append(process[column])
+        #    if highlight is not None:
+        #        if highlight == (cnt - 5):
+        #            self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations), curses.A_REVERSE)
+        #        else:
+        #            self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations))
+        #    else:
+        #        self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations))
+        #    cnt += 1
+        pass
 
 
 
     def start_ui(self):
-        """
-        The main function
-        """
+        """The main function loop"""
         (max_y, max_x) = self.scr.getmaxyx()
         try:
              curses.use_default_colors()
@@ -512,7 +373,7 @@ class Ui(object):
         while 1:
             key = self.scr.getch()
             if key == ord("a"):
-                self.add_pm()
+                self.add_session()
             elif key == ord("c"):
                 if self.pms[self.pm_index].is_online:
                     self.pms[self.pm_index].disconnect()
@@ -568,7 +429,7 @@ class Ui(object):
                 for pid in pids:
                     try:
                         pm.kill(pid)
-                    except sqltoplib.processManagerError:
+                    except mytop.processManagerError:
                         scr.move(3, 0)
                         scr.clrtoeol()
                         scr.addstr(3, 0, '%s' % (e))
@@ -622,28 +483,28 @@ class Ui(object):
                     self.paused = True
             elif key == ord("r"):
                 #key to remove connection
-                self.pms.remove(self.pms[self.pm_index]) 
+                self.pms.remove(self.pms[self.pm_index])
                 if self.pm_index > len(self.pms) - 1 :
                      self.pm_index = len(self.pms) - 1
                 if len(self.pms) == 0:
-                     dummy_pm = sqltoplib.create_connection(backend="dummy")
+                     dummy_pm = mytop.create_connection(backend="dummy")
                      self.pms.append(dummy_pm)
                      self.pm_index = 0
             if self.delay_counter  > self.delay:
                 self.delay_counter = 0
-                for p in self.pms: 
-                    try:
-                        if p.is_online:         
-                            p.refresh()
-                    except sqltoplib.processmanager.ProcessManagerError:
-                        pass
+                #for p in self.pms:
+                #    try:
+                #        if p.is_online:
+                #            p.refresh()
+                #    except mytop.processmanager.ProcessManagerError:
+                #        pass
             elif self.paused:
                 pass
             elif self.history:
                 pass
             else:
                 self.delay_counter = self.delay_counter + 0.1
-            
+
             self.scr.erase()
             if self.fullscreen:
                 self.display_header()

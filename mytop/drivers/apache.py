@@ -16,17 +16,21 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Linux Driver"""
+"""
+Linux Driver
+"""
 import datetime
 import platform
 import time
 
-from .. import driver
+import driver
 import psutil
 
 
-class LinuxProcessDriver(driver.Driver):
-    """Linux Driver"""
+class LinuxDriver(driver.Driver):
+    """
+    Linux Driver
+    """
     def __init__(self):
         driver.Driver.__init__(self)
 
@@ -69,11 +73,15 @@ class LinuxProcessDriver(driver.Driver):
         info["load"] = psutil.os.getloadavg()
         info["version"] = platform.release()
         return info
+        
 
     def kill(self, process, signal):
         process = psutil.Process(process.pid)
         process.send_signal(signal)
         
-    def renice(self, process, nice):
+    def set_nice(self, process, nice):
         process = psutil.Process(process.pid)
         process.set_nice(nice)
+   
+
+drivers = {"linux:process" : LinuxDriver}

@@ -16,19 +16,23 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Linux Driver"""
+"""
+Memcache Driver
+"""
 import datetime
-import platform
 import time
 
-from .. import driver
-import psutil
+import driver
+import memcache
 
 
-class LinuxProcessDriver(driver.Driver):
-    """Linux Driver"""
+class MemcacheDriver(driver.Driver):
+    """
+    Memcache Driver
+    """
     def __init__(self):
         driver.Driver.__init__(self)
+        self._memcache = None
 
     def fields(self):
         """
@@ -46,7 +50,6 @@ class LinuxProcessDriver(driver.Driver):
         """
         Refresh sql information. Including uptime and the list of running process
         """
-        linux_process = psutil.get_process_list()
         all_process = []
         for pr in linux_process:
             info = pr.name + " " + " ".join(pr.cmdline)
@@ -70,10 +73,8 @@ class LinuxProcessDriver(driver.Driver):
         info["version"] = platform.release()
         return info
 
-    def kill(self, process, signal):
-        process = psutil.Process(process.pid)
-        process.send_signal(signal)
+    def initialize(self):
+        self._memcache = memcache.Client()
         
-    def renice(self, process, nice):
-        process = psutil.Process(process.pid)
-        process.set_nice(nice)
+
+drivers = {"memcache" : MemcacheDriver}

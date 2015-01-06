@@ -3,7 +3,7 @@
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
 # Description : SQL process viewer
-#  
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -13,34 +13,9 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-sqloptlib is a library to manipulate and get sql server process
-
-Structure
-
-Ui
- - Expose results
- - http, ncurse, cmd, etc
-
-SessionManager
- - Expose all sessions
-
-Session
- - Expose driver
- - Cache history
- - filters
- - orders
- - additional function
- - Maybe threaded
- - Type system
-
-Driver
- - Grab data
-
-"""
 
 import datetime
 import os
@@ -53,7 +28,7 @@ class History(object):
     def __init__(self, lenght=0):
         self.lenght = lenght
         self._items = []
-    
+
     def add(self, items):
         self._items[time.time()] = items
 
@@ -68,58 +43,42 @@ class Session(object):
         self.history = History(history)
 
     def start(self):
-        """
-        Start the session
-        """
+        """Start the session"""
         self.driver.configure(self.config)
         self.driver.initialize()
 
     def stop(self):
-        """
-        Stop the session
-        """
+        """Stop the session"""
         self.driver.terminate()
 
     def tops(self):
-        items = self.driver.tops()
-        self.history.add(items)
+        items = self._driver.tops()
+        #self.history.add(items)
         return items
 
     def fields(self):
-        return self.driver.fields()
+        return self._driver.fields()
 
     def info(self):
-        return self.driver.info()
+        return self._driver.info()
 
     def additional(self):
         pass
 
 
-class VTS(object):
-    """
-    Virtual Top System class
-    """
+class SessionsManager(object):
+    """Sessions Manager"""
     def __init__(self):
         self.current = None
         self.sessions = []
 
-    def info(self):
-        pass
-
-    def tops(self):
-        pass
-
     def remove(self):
-        """
-        Add a session
-        """
+        """Remove a session"""
         pass
 
-    def add(self):
-        """
-        Remove a session
-        """
-        pass
+    def add(self, session):
+        """Create a new session"""
+        self.sessions.append(session)
 
     def enable(self):
         pass
@@ -132,7 +91,7 @@ class VTS(object):
 class ConfigError(Exception):
     """
     Config error class
-    """ 
+    """
     def __init__(self, value):
         self.value = value
         Exception.__init__(self, value)
@@ -200,3 +159,55 @@ class Config(object):
                 self._configs[line[0].strip()] = line[1].strip()
         config_file.close()
 
+
+config = {
+    "drivers": {
+        "mysql": {
+            "process": {
+                "info": {
+                    "position": 6,
+                    "length": 5,
+                    "aligment": "left",
+                    "title": "Info"
+                },
+                "pid": {
+                    "position": 0,
+                    "length": 10,
+                    "aligment": "right",
+                    "title": "Pid"
+                },
+                "db": {
+                    "position": 3,
+                    "length": 20,
+                    "aligment": "left",
+                    "title": "Database"
+                },
+                "state": {
+                    "position": 4,
+                    "length": 5,
+                    "aligment": "left",
+                    "title": "State"
+                },
+                "host": {
+                    "position": 2,
+                    "length": 15,
+                    "aligment": "left",
+                    "title": "Hostname"
+                },
+                "user": {
+                    "position": 1,
+                    "length": 11,
+                    "aligment": "left",
+                    "title": "Username"
+                },
+                "time": {
+                    "position": 5,
+                    "length": 8,
+                    "aligment": "left",
+                    "title": "Uptime"
+                }
+            },
+            "headers": {}
+        }
+    }
+}
