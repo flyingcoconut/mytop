@@ -39,12 +39,12 @@ def show_usage():
     """
     Print a usage message
     """
-    print """Usage: myps [OPTION]... -u [USER]...
-    """
+    print("""Usage: myps [OPTION]... -u [USER]...""")
+
 
 def show_help():
     """Print a help message"""
-    print """Database process viewer
+    print("""Database process viewer
 Example: myps --driver mysql --config host:127.0.0.1,port:3306
 
 Options:
@@ -56,7 +56,7 @@ Miscellaneous:
   -V, --version         print version information and exit
   -h, --help                display this help and exit
 
-Report bugs to: patrick.charron.pc@gmail.com"""
+Report bugs to: patrick.charron.pc@gmail.com""")
 
 def main(driver):
     #print "%-10s %-11s %-15s %-20s %-5s %-8s %-5s" % ('ID', 'USER', 'HOST', 'DB', 'STATE', 'TIME', 'INFO')

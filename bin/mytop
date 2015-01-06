@@ -3,7 +3,7 @@
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
 # Description : SQL process viewer
-#  
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -13,7 +13,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -61,11 +61,11 @@ Miscellaneous:
 
 Report bugs to: patrick.charron.pc@gmail.com"""
 
-   
+
 
 def init_ui(scr):
     u = ui.Ui(scr)
-    args = arg_parser()
+    #args = arg_parser()
     #u.formatdb = args["formatdb"]
     u.start_ui()
 
@@ -74,9 +74,7 @@ if __name__ == '__main__':
     #Initialise signal to catch SIGINT
     signal.signal(signal.SIGINT, signal_handler)
     #Call the parser function
-    args = arg_parser()
+    #args = arg_parser()
     #Curses wrapper around the main function
-    sys.stdout.write("\x1b]2;mytop\x07")
+    #sys.stdout.write("\x1b]2;mytop\x07")
     curses.wrapper(init_ui)
-
-
