@@ -20,6 +20,7 @@
 import datetime
 import os
 import time
+import threading
 
 class History(object):
     def __init__(self, lenght=0):
@@ -32,12 +33,14 @@ class History(object):
     def get(self):
         pass
 
-class Session(object):
+class Session(threading.Thread):
     def __init__(self, driver, config, history=10):
+        threading.Thread.__init__(self)
         self.driver = driver
         self.config = config
         self.filters = []
         self.history = History(history)
+        self.interval = 1
 
     def start(self):
         """Start the session"""
@@ -47,6 +50,18 @@ class Session(object):
     def stop(self):
         """Stop the session"""
         self.driver.terminate()
+
+    def pause(self):
+        """Pause the session"""
+        pass
+
+    def resume(self):
+        """Resume the session"""
+        pass
+
+    def record(self):
+        """Record a session"""
+        pass
 
     def tops(self):
         items = self._driver.tops()
