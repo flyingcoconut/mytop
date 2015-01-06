@@ -3,7 +3,7 @@
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
 # Description : SQL process viewer
-#  
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -13,13 +13,13 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Redis Driver"""
 import datetime
 
-from .. import driver
+import driver
 import redis
 
 class RedisDriver(driver.Driver):
@@ -30,7 +30,7 @@ class RedisDriver(driver.Driver):
         driver.Driver.__init__(self)
         self.config.add("host", default="localhost", required=False, validator=str)
         self._sql = None
-        
+
     def tops(self):
         """
         Refresh redis informations
@@ -70,5 +70,3 @@ class RedisDriver(driver.Driver):
         except Exception as e:
             raise driver.DriverError("Impossible to connect to the database serveur : " + str(e))
         self._sql = db
-   
-

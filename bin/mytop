@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
-# Description : SQL process viewer
+# Description : Tops viewer
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 
 import os
 import sys
-import curses
 import signal
 import argparse
 
@@ -27,25 +26,19 @@ import mytop
 from mytop import ui
 
 
-VERSION = "0.0.2"
+VERSION = "0.1"
 
 def signal_handler(sig, frame):
-    """
-    Get signals and exit
-    """
+    """Get signals and exit"""
     sys.exit(1)
 
 def show_usage():
-    """
-    Print a usage message
-    """
-    print """Usage: mytop -b [BACKEND] -u [USER] -p [PASSWORD] ... """
+    """Print a usage message"""
+    print("Usage: mytop -b [BACKEND] -u [USER] -p [PASSWORD] ... ")
 
 def show_help():
-    """
-    Print a help message
-    """
-    print """Process viewer
+    """Print a help message"""
+    print("""Process viewer
 Example: mytop -u root -h localhost -p password
 
 Options:
@@ -59,15 +52,13 @@ Miscellaneous:
   -V, --version         print version information and exit
   --help                display this help and exit
 
-Report bugs to: patrick.charron.pc@gmail.com"""
+Report bugs to: patrick.charron.pc@gmail.com""")
 
 
 
-def init_ui(scr):
-    u = ui.Ui(scr)
-    #args = arg_parser()
-    #u.formatdb = args["formatdb"]
-    u.start_ui()
+def init_ui():
+    u = ui.Ui()
+    u.start()
 
 
 if __name__ == '__main__':
@@ -77,4 +68,4 @@ if __name__ == '__main__':
     #args = arg_parser()
     #Curses wrapper around the main function
     #sys.stdout.write("\x1b]2;mytop\x07")
-    curses.wrapper(init_ui)
+    init_ui()

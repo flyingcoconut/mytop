@@ -27,7 +27,7 @@ from mytop import drivers
 
 class Ui(object):
     """The ui class"""
-    def __init__(self, scr, session = None):
+    def __init__(self, session = None):
         self.fulscreen = False
         self.extension = False
         self.sessions_manager = mytop.SessionsManager()
@@ -41,7 +41,7 @@ class Ui(object):
         self.cursor_max_pos = 0
         self.fullscreen = False
         self.extension = False
-        self.scr = scr
+        self.scr = None
         self.formatdb = None
 
     def record(self):
@@ -359,10 +359,12 @@ class Ui(object):
         #    cnt += 1
         pass
 
+    def start(self):
+        curses.wrapper(self.start_ui)
 
-
-    def start_ui(self):
+    def start_ui(self, scr):
         """The main function loop"""
+        self.scr = scr #Set screen
         (max_y, max_x) = self.scr.getmaxyx()
         try:
              curses.use_default_colors()

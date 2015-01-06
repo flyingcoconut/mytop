@@ -3,7 +3,7 @@
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
 # Description : SQL process viewer
-#  
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -13,13 +13,13 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """MySQL Driver"""
 import datetime
 
-from .. import driver
+import driver
 import MySQLdb
 
 class MySQLDriver(driver.Driver):
@@ -43,7 +43,7 @@ class MySQLDriver(driver.Driver):
         fields["time"] = str
         fields["info"] = str
         return fields
-        
+
     def tops(self):
         """Refresh sql list of running process"""
         try:
@@ -111,7 +111,7 @@ class MySQLDriver(driver.Driver):
     def terminate(self):
         """Terminate connection"""
         self._sql.close()
-            
+
 
     def kill(self, process):
         """
@@ -121,10 +121,9 @@ class MySQLDriver(driver.Driver):
             self._sql.execute('kill ' + process.pid)
         except MySQLdb.OperationalError as e:
             raise processmanager.ProcessManagerError("Impossible to kill pid : " + str(pid))
-    
+
     def explain(self, process):
         """
         Explain a mysql query
         """
         print "todo"
-

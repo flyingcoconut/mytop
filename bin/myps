@@ -3,7 +3,7 @@
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
 # Description : SQL process viewer
-#  
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -13,7 +13,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -27,18 +27,14 @@ from tabulate import tabulate
 
 from sqltoplib import drivers
 
-VERSION = "0.0.1"
+VERSION = "0.1"
 
 def signal_handler(sig, frame):
-    """
-    Get signals and exit
-    """
+    """Get signals and exit"""
     sys.exit(1)
 
 def show_usage():
-    """
-    Print a usage message
-    """
+    """Print a usage message"""
     print("""Usage: myps [OPTION]... -u [USER]...""")
 
 
@@ -93,9 +89,7 @@ if __name__ == '__main__':
     config = {}
     for line in args.config.split(","):
         config[line.split(":")[0]] = line.split(":")[1]
-    
+
     driver.configure(config)
     driver.initialize()
     main(driver)
-
-

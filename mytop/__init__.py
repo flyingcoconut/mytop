@@ -21,9 +21,6 @@ import datetime
 import os
 import time
 
-import drivers
-
-
 class History(object):
     def __init__(self, lenght=0):
         self.lenght = lenght
@@ -160,7 +157,7 @@ class Config(object):
         config_file.close()
 
 
-config = {
+default_config = {
     "drivers": {
         "mysql": {
             "process": {
