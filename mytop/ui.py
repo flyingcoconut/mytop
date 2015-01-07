@@ -28,10 +28,10 @@ from mytop import drivers
 class Ui(object):
     """The ui class"""
     def __init__(self, session = None):
-        self.fulscreen = False
+        self.fullscreen = False
         self.extension = False
-        self.sessions_manager = mytop.SessionsManager()
-        #self.maxInfo = (max_x-75)
+        self.sessions = []
+        self.current_session = None
         self.delay_counter = 1
         self.delay = 1
         self.paused = False
@@ -39,10 +39,7 @@ class Ui(object):
         self.history_pos = 0
         self.cursor_pos = 0
         self.cursor_max_pos = 0
-        self.fullscreen = False
-        self.extension = False
         self.scr = None
-        self.formatdb = None
 
     def record(self):
         """Record a session"""
@@ -202,7 +199,8 @@ class Ui(object):
             configs[conf.name] = value
         session = mytop.Session(driver, configs)
         session.start()
-        self.sessions_manager.add(session)
+        self.sessions.append(session)
+        self.current_session = session
 
 
     def display_help(self):
@@ -345,6 +343,20 @@ class Ui(object):
            cnt = 5
            max_process = max_y-6
 
+        column = [None] * len(mytop.default_config["drivers"]["mysql"]["process"].keys())
+        for key in mytop.default_config["drivers"]["mysql"]["process"].keys():
+            position = mytop.default_config["drivers"]["mysql"]["process"][key]["position"]
+            length = mytop.default_config["drivers"]["mysql"]["process"][key]["length"]
+            column[position] = "{: <" + str(length) + "." + str(length) + "}"
+            #column[position] = "%" + str(length) + "s"
+
+        for i in self.current_session.history.last():
+            informations = []
+            for key in mytop.default_config["drivers"]["mysql"]["process"].keys():
+                informations.append(i[key])
+            informations = map(str, informations)
+            self.scr.addstr(cnt, 0, " ".join(column).format(*informations))
+            cnt += 1
         #for process in self.pms[self.pm_index].process[:(max_process)]:
         #    informations = []
         #    for column in self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["data"]:
@@ -357,7 +369,6 @@ class Ui(object):
         #    else:
         #        self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations))
         #    cnt += 1
-        pass
 
     def start(self):
         curses.wrapper(self.start_ui)
@@ -370,9 +381,9 @@ class Ui(object):
              curses.use_default_colors()
         except curses.error:
              pass
-        self.scr.nodelay(1)
-        self.scr.keypad(1)
         while 1:
+            self.scr.nodelay(1)
+            self.scr.keypad(1)
             key = self.scr.getch()
             if key == ord("a"):
                 self.add_session()
@@ -420,26 +431,6 @@ class Ui(object):
             elif key == ord("f"):
                 #key to edit or add filter
                 self.edit_filter()
-            elif key == ord("k"):
-                #key to kill sql process to threads
-                scr.addstr(3, 0, 'Specify the id process to kill : ')
-                scr.move(3, 33)
-                scr.nodelay(0)
-                curses.echo()
-                scr.refresh()
-                pids = scr.getstr().split()
-                for pid in pids:
-                    try:
-                        pm.kill(pid)
-                    except mytop.processManagerError:
-                        scr.move(3, 0)
-                        scr.clrtoeol()
-                        scr.addstr(3, 0, '%s' % (e))
-                        scr.refresh()
-                        time.sleep(1)
-                curses.noecho()
-                scr.nodelay(1)
-                scr.refresh()
 
             elif key == ord("w"):
                 #Key to write results to a file
@@ -492,36 +483,29 @@ class Ui(object):
                      dummy_pm = mytop.create_connection(backend="dummy")
                      self.pms.append(dummy_pm)
                      self.pm_index = 0
+
+
             if self.delay_counter  > self.delay:
                 self.delay_counter = 0
-                #for p in self.pms:
-                #    try:
-                #        if p.is_online:
-                #            p.refresh()
-                #    except mytop.processmanager.ProcessManagerError:
-                #        pass
-            elif self.paused:
-                pass
-            elif self.history:
-                pass
+                self.scr.erase()
+                if self.fullscreen:
+                    if self.current_session != None:
+                        self.display_header()
+                        self.display_process()
+                else:
+                    if self.current_session != None:
+                        self.display_header()
+                        self.display_process()
+                    self.display_footer("[a]dd [c]onnect [d]elay [f]ilter [i]nfo [o]rder [p]aused [r]emove [h]elp [q]uit")
+                    self.scr.move(3, 0)
             else:
                 self.delay_counter = self.delay_counter + 0.1
 
-            self.scr.erase()
-            if self.fullscreen:
-                self.display_header()
-                self.display_process()
-            else:
-                pass
-                self.display_header()
-                self.display_process()
-                self.display_footer("[a]dd [c]onnect [d]elay [f]ilter [i]nfo [o]rder [p]aused [r]emove [h]elp [q]uit")
-                self.scr.move(3, 0)
             #curses.curs_set(1)
-            if self.paused or self.history:
-                curses.curs_set(0)
-                self.scr.addstr(3, 0, 'Pause', curses.A_BLINK)
-            if self.history:
-                curses.curs_set(0)
-                self.scr.addstr(3, 0, 'History (%s / %s)' % (str(self.history_pos), str(len(self.pms[self.pm_index]._history) - 1)), curses.A_BLINK)
+            #if self.paused or self.history:
+            #    curses.curs_set(0)
+            #    self.scr.addstr(3, 0, 'Pause', curses.A_BLINK)
+            #if self.history:
+            #    curses.curs_set(0)
+            #    self.scr.addstr(3, 0, 'History (%s / %s)' % (str(self.history_pos), str(len(self.pms[self.pm_index]._history) - 1)), curses.A_BLINK)
             time.sleep(0.1)

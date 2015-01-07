@@ -22,15 +22,28 @@ import os
 import time
 import threading
 
+
 class History(object):
     def __init__(self, lenght=0):
         self.lenght = lenght
         self._items = []
+        self._timeline = {}
 
     def add(self, items):
-        self._items[time.time()] = items
+        """Add a frame"""
+        self._items.append(items)
+        self._timeline[time.time()] = items
 
-    def get(self):
+    def last(self):
+        """Return last frame"""
+        try:
+            items = self._items[-1]
+        except IndexError:
+            items = []
+        return items
+
+    def first(self):
+        """Return first frame"""
         pass
 
 class Session(threading.Thread):
@@ -42,10 +55,13 @@ class Session(threading.Thread):
         self.history = History(history)
         self.interval = 1
 
-    def start(self):
+    def run(self):
         """Start the session"""
         self.driver.configure(self.config)
         self.driver.initialize()
+        while 1:
+            items = self.driver.tops()
+            self.history.add(items)
 
     def stop(self):
         """Stop the session"""
@@ -64,39 +80,47 @@ class Session(threading.Thread):
         pass
 
     def tops(self):
-        items = self._driver.tops()
+        items = self.driver.tops()
         #self.history.add(items)
         return items
 
     def fields(self):
-        return self._driver.fields()
+        return self.driver.fields()
 
     def info(self):
-        return self._driver.info()
+        return self.driver.info()
 
     def additional(self):
         pass
 
 
-class SessionsManager(object):
-    """Sessions Manager"""
-    def __init__(self):
-        self.current = None
-        self.sessions = []
-
-    def remove(self):
-        """Remove a session"""
-        pass
-
-    def add(self, session):
-        """Create a new session"""
-        self.sessions.append(session)
-
-    def enable(self):
-        pass
-
-    def disable(self):
-        pass
+# class SessionsManager(object):
+#     """Sessions Manager"""
+#     def __init__(self):
+#         self.current = None
+#         self.sessions = []
+#         self.next_uid = 0
+#
+#     def remove(self):
+#         """Remove a session"""
+#         pass
+#
+#     def print_data(self, tops):
+#         print(tops)
+#
+#     def new(self, driver, config):
+#         """Create a new session"""
+#         session = Session(self.next_uid, driver, config)
+#         session.callback = self.print_data
+#         self.next_uid = self.next_uid + 1
+#         self.sessions.append(session)
+#         session.start()
+#
+#     def enable(self):
+#         pass
+#
+#     def disable(self):
+#         pass
 
 
 
