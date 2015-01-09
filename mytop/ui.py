@@ -40,6 +40,7 @@ class Ui(object):
         self.cursor_pos = 0
         self.cursor_max_pos = 0
         self.scr = None
+        self.cursor_pos_x = 0
 
     def record(self):
         """Record a session"""
@@ -130,6 +131,12 @@ class Ui(object):
 
 
     def command(self):
+        command = self.ask("command : ")
+        if command == "quit":
+            sys.exit(0)
+
+    def ask(self, question):
+        """Ask question"""
         (max_y, max_x) = self.scr.getmaxyx()
         if self.fullscreen:
              ques_pos = max_y - 1
@@ -139,63 +146,37 @@ class Ui(object):
         curses.echo()
         self.scr.move(ques_pos, 0)
         self.scr.clrtoeol()
-        self.scr.addstr(ques_pos, 0, "command : ")
-        command = self.scr.getstr()
-        if command == "backend":
-            response = "List of disponible backend\n\n"
-            for backend in mytop.DISPONIBLE_BACKEND:
-                response = response + backend + "\n"
-        elif command == "help":
-            response = """ List of disponible command\n\n
-     backend                    List disponible backend
-     load                       Load connection
-     save                       save current connection
-     help                       Display this help
-     filter <column> <regex>
-     quit                       Quit
-    """
+        self.scr.addstr(ques_pos, 0, question[:max_x])
+        value = self.scr.getstr()
+        return value
 
-        elif command == "quit":
-            sys.exit(0)
-        self.scr.erase()
+    def error(self, error):
+        """Ask question"""
+        (max_y, max_x) = self.scr.getmaxyx()
+        if self.fullscreen:
+             ques_pos = max_y - 1
+        else:
+             ques_pos = 3
         self.scr.nodelay(0)
-        curses.noecho()
-        self.scr.addstr(1, 0, response)
-        self.scr.addstr(max_y - 1, 1, "Press any key to quit")
-        self.scr.getch()
-        self.scr.nodelay(1)
-        curses.noecho()
+        curses.echo()
+        self.scr.move(ques_pos, 0)
+        self.scr.clrtoeol()
+        self.scr.addstr(ques_pos, 0, error.ljust(max_x)[:max_x])
+        self.scr.refresh()
+        time.sleep(1)
 
     def add_session(self):
         """Add session"""
-        (max_y, max_x) = self.scr.getmaxyx()
-        if self.fullscreen:
-             ques_pos = max_y - 1
-        else:
-             ques_pos = 3
-        self.scr.nodelay(0)
-        curses.echo()
-        self.scr.move(ques_pos, 0)
-        self.scr.clrtoeol()
-        self.scr.addstr(ques_pos, 0, "driver : ")
-        value = self.scr.getstr()
+        value = self.ask("driver : ")
         if value != "":
             if value in drivers.list_drivers():
                 driver = drivers.load(value)
             else:
-                self.scr.move(ques_pos, 0)
-                self.scr.clrtoeol()
-                self.scr.addstr(ques_pos, 0, 'driver is not valid')
-                self.scr.refresh()
-                time.sleep(1)
+                self.error('driver is not valid')
                 return
         configs = {}
         for conf in driver.config.configs:
-            self.scr.move(ques_pos, 0)
-            self.scr.clrtoeol()
-            self.scr.addstr(ques_pos, 0, conf.name + " : ")
-            self.scr.refresh()
-            value = self.scr.getstr()
+            value = self.ask(conf.name + " : ")
             configs[conf.name] = value
         session = mytop.Session(driver, configs)
         session.start()
@@ -325,29 +306,29 @@ class Ui(object):
         #    self.scr.addstr(3, 0, 'error : %s' % (self.pms[self.pm_index].error))
         pass
 
-    def display_footer(self, text):
+    def display_footer(self):
         """Display footer mainly for action choice from user"""
         (max_y, max_x) = self.scr.getmaxyx()
-        self.scr.addstr(max_y-1, 0, '%s' % (text), curses.A_BOLD | curses.A_REVERSE)
-        self.scr.hline(max_y-1, len(text), " ", max_x, curses.A_BOLD | curses.A_REVERSE)
+        text = "[a]dd [c]onnect [d]elay [f]ilter [i]nfo [o]rder [p]aused [r]emove [h]elp [q]uit"
+        self.scr.addstr(max_y-1, 0, '%s' % (text).ljust(max_x)[:max_x-1], curses.A_BOLD | curses.A_REVERSE)
 
-    def display_process(self):
+    def display_tops(self):
         """Display tops to screen"""
         (max_y, max_x) = self.scr.getmaxyx()
         if self.fullscreen:
            cnt = 1
            max_process = max_y - 2
         else:
-           cnt = 5
+           cnt = 6
            max_process = max_y - 6
 
         column = [None] * len(mytop.default_config["drivers"]["mysql"]["process"].keys())
-        titles = []
+        titles = [None] * len(mytop.default_config["drivers"]["mysql"]["process"].keys())
         for key in mytop.default_config["drivers"]["mysql"]["process"].keys():
             position = mytop.default_config["drivers"]["mysql"]["process"][key]["position"]
             length = mytop.default_config["drivers"]["mysql"]["process"][key]["length"]
             alignment = mytop.default_config["drivers"]["mysql"]["process"][key]["alignment"]
-            titles.append(mytop.default_config["drivers"]["mysql"]["process"][key]["title"])
+            titles[position] = (mytop.default_config["drivers"]["mysql"]["process"][key]["title"])
             if alignment == "left":
                 column[position] = "{: <" + str(length) + "." + str(length) + "}"
             elif alignment == "right":
@@ -355,7 +336,7 @@ class Ui(object):
             elif alignment == "center":
                 column[position] = "{: ^" + str(length) + "." + str(length) + "}"
 
-        self.scr.addstr(4, 0, " ".join(column).format(*titles), curses.A_BOLD)#|curses.A_REVERSE)
+        self.scr.addstr(4, 0, " ".join(column).format(*titles).ljust(max_x)[self.cursor_pos_x:max_x], curses.A_BOLD|curses.A_REVERSE)
         for i in self.current_session.history.last():
             informations = [None] * len(mytop.default_config["drivers"]["mysql"]["process"].keys())
             for key in mytop.default_config["drivers"]["mysql"]["process"].keys():
@@ -363,10 +344,101 @@ class Ui(object):
                 length = mytop.default_config["drivers"]["mysql"]["process"][key]["length"]
                 informations[position] = i[key]
             informations = map(str, informations)
-            self.scr.addstr(cnt, 0, " ".join(column).format(*informations))
+            self.scr.addstr(cnt, 0, " ".join(column).format(*informations)[self.cursor_pos_x:max_x])
             cnt += 1
 
+    def handle_key(self, key):
+        if key == ord("a"):
+            self.add_session()
+        elif key == ord(":"):
+            self.command()
+        elif key == ord("F"):
+            if self.fullscreen:
+                self.fullscreen = False
+                curses.curs_set(1)
+            else:
+                self.fullscreen = True
+                curses.curs_set(0)
+        elif key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"), ord("6"), ord("7"), ord("8"), ord("9")]:
+           """All keyboard key number are used to select wich connection to display"""
+           index = int(chr(key)) - 1
+           if index <= len(self.pms) - 1:
+               self.pm_index = index
+           else:
+               self.scr.move(3, 0)
+               self.scr.clrtoeol()
+               self.scr.addstr(3, 0, "Connection %d does not exist" % (index))
+               time.sleep(1)
+        elif key == ord("q"):
+            """Key to exit mytop"""
+            sys.exit(0)
+        elif key == ord("h"):
+            self.display_help()
+        elif key == curses.KEY_LEFT:
+            if self.cursor_pos_x > 0:
+                self.cursor_pos_x -= 1
+        elif key == curses.KEY_RIGHT:
+            self.cursor_pos_x += 1
+        elif key == ord("d"):
+            """Key to change delay"""
+            self.edit_delay()
+        elif key == ord("e"):
+            """Key to edit the current connection"""
+            self.edit_pm()
+        elif key == ord("f"):
+            """key to edit or add filter"""
+            self.edit_filter()
+
+        elif key == ord("w"):
+            #Key to write results to a file
+            write_to_file(scr, pm)
+        elif key == curses.KEY_DOWN or key == curses.KEY_UP:
+            if key == curses.KEY_DOWN:
+                if self.cursor_pos < len(self.pms[self.pm_index].process) - 1:
+                    self.cursor_pos = self.cursor_pos + 1
+            if key == curses.KEY_UP:
+                if self.cursor_pos > 0:
+                    self.cursor_pos = self.cursor_pos - 1
+            if self.fullscreen:
+                self.display_tops()
+            else:
+                self.display_tops()
+            self.scr.move(3, 0)
+            self.scr.refresh()
+            init_time = time.time()
+            while time.time() - init_time < 0.5:
+                key = self.scr.getch()
+                if key == curses.KEY_DOWN:
+                    if self.cursor_pos < len(self.pms[self.pm_index].process) - 1:
+                        self.cursor_pos = self.cursor_pos + 1
+                elif key == curses.KEY_UP:
+                    if self.cursor_pos > 0:
+                        self.cursor_pos = self.cursor_pos - 1
+                if self.fullscreen:
+                    self.display_tops()
+                else:
+                    self.display_tops()
+                self.scr.move(3, 0)
+                self.scr.refresh()
+        elif key == ord("p"):
+            #Key to pause mytop
+            if self.paused:
+                self.paused = False
+                self.delay_counter = self.delay
+            else:
+                self.paused = True
+        elif key == ord("r"):
+            #key to remove connection
+            self.pms.remove(self.pms[self.pm_index])
+            if self.pm_index > len(self.pms) - 1 :
+                 self.pm_index = len(self.pms) - 1
+            if len(self.pms) == 0:
+                 dummy_pm = mytop.create_connection(backend="dummy")
+                 self.pms.append(dummy_pm)
+                 self.pm_index = 0
+
     def start(self):
+        """Wrappe function if bug and return to display properly"""
         curses.wrapper(self.start_ui)
 
     def start_ui(self, scr):
@@ -381,123 +453,22 @@ class Ui(object):
             self.scr.nodelay(1)
             self.scr.keypad(1)
             key = self.scr.getch()
-            if key == ord("a"):
-                self.add_session()
-            elif key == ord("c"):
-                if self.pms[self.pm_index].is_online:
-                    self.pms[self.pm_index].disconnect()
-                else:
-                    try:
-                        self.pms[self.pm_index].connect()
-                    except:
-                        pass
-            elif key == ord(":"):
-                self.command()
-            elif key == ord("F"):
-                if self.fullscreen:
-                    self.fullscreen = False
-                    curses.curs_set(1)
-                else:
-                    self.fullscreen = True
-                    curses.curs_set(0)
-            elif key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"), ord("6"), ord("7"), ord("8"), ord("9")]:
-               """All keyboard key number are used to select wich connection to display"""
-               index = int(chr(key)) - 1
-               if index <= len(self.pms) - 1:
-                   self.pm_index = index
-               else:
-                   self.scr.move(3, 0)
-                   self.scr.clrtoeol()
-                   self.scr.addstr(3, 0, "Connection %d does not exist" % (index))
-                   time.sleep(1)
-            elif key == ord("q"):
-                """Key to exit mytop"""
-                sys.exit(0)
-            elif key == ord("h"):
-                self.display_help()
-            elif key == curses.KEY_LEFT or key == curses.KEY_RIGHT:
-                """Key to navigate history"""
-                self.display_history(key)
-            elif key == ord("d"):
-                """Key to change delay"""
-                self.edit_delay()
-            elif key == ord("e"):
-                """Key to edit the current connection"""
-                self.edit_pm()
-            elif key == ord("f"):
-                """key to edit or add filter"""
-                self.edit_filter()
-
-            elif key == ord("w"):
-                #Key to write results to a file
-                write_to_file(scr, pm)
-            elif key == curses.KEY_DOWN or key == curses.KEY_UP:
-                if key == curses.KEY_DOWN:
-                    if self.cursor_pos < len(self.pms[self.pm_index].process) - 1:
-                        self.cursor_pos = self.cursor_pos + 1
-                if key == curses.KEY_UP:
-                    if self.cursor_pos > 0:
-                        self.cursor_pos = self.cursor_pos - 1
-                if self.fullscreen:
-                    self.display_process()
-                else:
-                    self.display_process()
-                self.scr.move(3, 0)
-                self.scr.refresh()
-                init_time = time.time()
-                while time.time() - init_time < 0.5:
-                    key = self.scr.getch()
-                    if key == curses.KEY_DOWN:
-                        if self.cursor_pos < len(self.pms[self.pm_index].process) - 1:
-                            self.cursor_pos = self.cursor_pos + 1
-                    elif key == curses.KEY_UP:
-                        if self.cursor_pos > 0:
-                            self.cursor_pos = self.cursor_pos - 1
-                    if self.fullscreen:
-                        self.display_process()
-                    else:
-                        self.display_process()
-                    self.scr.move(3, 0)
-                    self.scr.refresh()
-            elif key == ord("i"):
-                #Key to display details about a process
-                display_details(scr, pms[pm_index].process[cursor_pos])
-                scr.erase()
-            elif key == ord("p"):
-                #Key to pause mytop
-                if self.paused:
-                    self.paused = False
-                    self.delay_counter = self.delay
-                else:
-                    self.paused = True
-            elif key == ord("r"):
-                #key to remove connection
-                self.pms.remove(self.pms[self.pm_index])
-                if self.pm_index > len(self.pms) - 1 :
-                     self.pm_index = len(self.pms) - 1
-                if len(self.pms) == 0:
-                     dummy_pm = mytop.create_connection(backend="dummy")
-                     self.pms.append(dummy_pm)
-                     self.pm_index = 0
-
-
+            self.handle_key(key)
             if self.delay_counter  > self.delay:
                 self.delay_counter = 0
                 self.scr.erase()
                 #self.scr.refresh()
+                #curses.doupdate()
                 if self.fullscreen:
                     if self.current_session != None:
                         self.display_header()
-                        self.display_process()
+                        self.display_tops()
                 else:
                     if self.current_session != None:
                         self.display_header()
-                        self.display_process()
-                    self.display_footer("[a]dd [c]onnect [d]elay [f]ilter [i]nfo [o]rder [p]aused [r]emove [h]elp [q]uit")
+                        self.display_tops()
+                    self.display_footer()
                     self.scr.move(3, 0)
             else:
                 self.delay_counter = self.delay_counter + 0.1
-
-            #    self.scr.addstr(3, 0, 'Pause', curses.A_BLINK)
-
-            time.sleep(0.1)
+            time.sleep(0.01)

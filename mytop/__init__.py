@@ -202,7 +202,7 @@ default_config = {
             "process": {
                 "info": {
                     "position": 6,
-                    "length": 20,
+                    "length": 40,
                     "alignment": "left",
                     "title": "Info"
                 },
