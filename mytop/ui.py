@@ -209,24 +209,22 @@ class Ui(object):
      Keyboard shortcut
 
      [a]dd          Add a new process manager
-     [c]onnect      Connect or disconnect
+     [c]olumn       Edit column display
      [d]elay        Modify delay between refresh
      [e]dit         Edit current connection
-     [E]xtension    Display extended functionality
-     [f]ilter       Filter process
+     [f]ilter       Filter tops
      [F]ullscreen   Display in fullscreen mode
-     [i]nfo         Get complete info on process
-     [o]rder        Order process
+     [o]pen         Open a saved session or a record
      [p]aused       Pause
      [r]emove       Remove current connection
-     [s]tats        Get complete stats about current process manager
+     [R]ecord       Record a session
+     [s]ave         Save session
      [w]rite        Write process to a csv file
      [h]elp         Display this help
      [q]uit         Quit
      [:]            Command
 
      Use up and down arrow to select process
-     Use left and right arrow to navigate history
         """
         (max_y, max_x) = self.scr.getmaxyx()
         self.scr.erase()
@@ -261,7 +259,7 @@ class Ui(object):
                 self.pms[self.pm_index].history(self.history_pos)
 
     def edit_session(self):
-        """Edit a process manager"""
+        """Edit a session"""
         pass
 
     def edit_filter(self):
@@ -341,34 +339,32 @@ class Ui(object):
            max_process = max_y - 2
         else:
            cnt = 5
-           max_process = max_y-6
+           max_process = max_y - 6
 
         column = [None] * len(mytop.default_config["drivers"]["mysql"]["process"].keys())
+        titles = []
         for key in mytop.default_config["drivers"]["mysql"]["process"].keys():
             position = mytop.default_config["drivers"]["mysql"]["process"][key]["position"]
             length = mytop.default_config["drivers"]["mysql"]["process"][key]["length"]
-            column[position] = "{: <" + str(length) + "." + str(length) + "}"
-            #column[position] = "%" + str(length) + "s"
+            alignment = mytop.default_config["drivers"]["mysql"]["process"][key]["alignment"]
+            titles.append(mytop.default_config["drivers"]["mysql"]["process"][key]["title"])
+            if alignment == "left":
+                column[position] = "{: <" + str(length) + "." + str(length) + "}"
+            elif alignment == "right":
+                column[position] = "{: >" + str(length) + "." + str(length) + "}"
+            elif alignment == "center":
+                column[position] = "{: ^" + str(length) + "." + str(length) + "}"
 
+        self.scr.addstr(4, 0, " ".join(column).format(*titles), curses.A_BOLD)#|curses.A_REVERSE)
         for i in self.current_session.history.last():
-            informations = []
+            informations = [None] * len(mytop.default_config["drivers"]["mysql"]["process"].keys())
             for key in mytop.default_config["drivers"]["mysql"]["process"].keys():
-                informations.append(i[key])
+                position = mytop.default_config["drivers"]["mysql"]["process"][key]["position"]
+                length = mytop.default_config["drivers"]["mysql"]["process"][key]["length"]
+                informations[position] = i[key]
             informations = map(str, informations)
             self.scr.addstr(cnt, 0, " ".join(column).format(*informations))
             cnt += 1
-        #for process in self.pms[self.pm_index].process[:(max_process)]:
-        #    informations = []
-        #    for column in self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["data"]:
-        #        informations.append(process[column])
-        #    if highlight is not None:
-        #        if highlight == (cnt - 5):
-        #            self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations), curses.A_REVERSE)
-        #        else:
-        #            self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations))
-        #    else:
-        #        self.scr.addstr(cnt, 0, self.formatdb["process"]["backend"][self.pms[self.pm_index].BACKEND]["column"] % tuple(informations))
-        #    cnt += 1
 
     def start(self):
         curses.wrapper(self.start_ui)
@@ -405,7 +401,7 @@ class Ui(object):
                     self.fullscreen = True
                     curses.curs_set(0)
             elif key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"), ord("6"), ord("7"), ord("8"), ord("9")]:
-               #All keyboard key number are used to select wich connection to display
+               """All keyboard key number are used to select wich connection to display"""
                index = int(chr(key)) - 1
                if index <= len(self.pms) - 1:
                    self.pm_index = index
@@ -415,21 +411,21 @@ class Ui(object):
                    self.scr.addstr(3, 0, "Connection %d does not exist" % (index))
                    time.sleep(1)
             elif key == ord("q"):
-                #Key to exit mytop
+                """Key to exit mytop"""
                 sys.exit(0)
             elif key == ord("h"):
                 self.display_help()
             elif key == curses.KEY_LEFT or key == curses.KEY_RIGHT:
-                #Key to navigate history
+                """Key to navigate history"""
                 self.display_history(key)
             elif key == ord("d"):
-                #Key to change delay
+                """Key to change delay"""
                 self.edit_delay()
             elif key == ord("e"):
-                #Key to edit the current connection
+                """Key to edit the current connection"""
                 self.edit_pm()
             elif key == ord("f"):
-                #key to edit or add filter
+                """key to edit or add filter"""
                 self.edit_filter()
 
             elif key == ord("w"):
@@ -488,6 +484,7 @@ class Ui(object):
             if self.delay_counter  > self.delay:
                 self.delay_counter = 0
                 self.scr.erase()
+                #self.scr.refresh()
                 if self.fullscreen:
                     if self.current_session != None:
                         self.display_header()
@@ -501,11 +498,6 @@ class Ui(object):
             else:
                 self.delay_counter = self.delay_counter + 0.1
 
-            #curses.curs_set(1)
-            #if self.paused or self.history:
-            #    curses.curs_set(0)
             #    self.scr.addstr(3, 0, 'Pause', curses.A_BLINK)
-            #if self.history:
-            #    curses.curs_set(0)
-            #    self.scr.addstr(3, 0, 'History (%s / %s)' % (str(self.history_pos), str(len(self.pms[self.pm_index]._history) - 1)), curses.A_BLINK)
+
             time.sleep(0.1)

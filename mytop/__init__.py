@@ -202,46 +202,87 @@ default_config = {
             "process": {
                 "info": {
                     "position": 6,
-                    "length": 5,
-                    "aligment": "left",
+                    "length": 20,
+                    "alignment": "left",
                     "title": "Info"
                 },
                 "pid": {
                     "position": 0,
                     "length": 10,
-                    "aligment": "right",
+                    "alignment": "right",
                     "title": "Pid"
                 },
                 "db": {
                     "position": 3,
                     "length": 20,
-                    "aligment": "left",
+                    "alignment": "left",
                     "title": "Database"
                 },
                 "state": {
                     "position": 4,
                     "length": 5,
-                    "aligment": "left",
+                    "alignment": "left",
                     "title": "State"
                 },
                 "host": {
                     "position": 2,
                     "length": 15,
-                    "aligment": "left",
+                    "alignment": "left",
                     "title": "Hostname"
                 },
                 "user": {
                     "position": 1,
                     "length": 11,
-                    "aligment": "left",
+                    "alignment": "left",
                     "title": "Username"
                 },
                 "time": {
                     "position": 5,
                     "length": 8,
-                    "aligment": "left",
+                    "alignment": "left",
                     "title": "Uptime"
                 }
+            },
+            "headers": {}
+        },
+        "linux:process": {
+            "process": {
+                "pid": {
+                    "position": 0,
+                    "length": 10,
+                    "alignment": "right",
+                    "title": "Pid"
+                },
+                "user": {
+                    "position": 1,
+                    "length": 11,
+                    "alignment": "left",
+                    "title": "Username"
+                },
+                "state": {
+                    "position": 2,
+                    "length": 5,
+                    "alignment": "left",
+                    "title": "State"
+                },
+                "host": {
+                    "position": 3,
+                    "length": 15,
+                    "alignment": "left",
+                    "title": "Hostname"
+                },
+                "time": {
+                    "position": 4,
+                    "length": 8,
+                    "alignment": "left",
+                    "title": "Uptime"
+                },
+                "info": {
+                    "position": 5,
+                    "length": 20,
+                    "alignment": "left",
+                    "title": "Info"
+                },
             },
             "headers": {}
         }
