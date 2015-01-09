@@ -104,31 +104,14 @@ class Ui(object):
         scr.refresh()
 
     def edit_delay(self):
-        (max_y, max_x) = self.scr.getmaxyx()
-        if self.fullscreen:
-            ques_pos = max_y - 1
-        else:
-            ques_pos = 3
-        self.scr.addstr(ques_pos, 0, 'Specify delay in second : ')
-        self.scr.nodelay(0)
-        curses.echo()
-        self.scr.refresh()
+        value = self.ask('Specify delay in second : ')
         try:
-            delay = int(self.scr.getstr())
+            delay = int(value)
         except ValueError:
-            self.scr.move(ques_pos, 0)
-            self.scr.clrtoeol()
-            self.scr.addstr(ques_pos, 0, 'Bad delay value')
-            self.scr.refresh()
-            time.sleep(1)
+            self.error('Bad delay value')
         else:
             self.delay_counter = delay
             self.delay = delay
-        curses.noecho()
-        self.scr.nodelay(1)
-        self.scr.refresh()
-        self.scr.erase()
-
 
     def command(self):
         command = self.ask("command : ")
@@ -312,6 +295,8 @@ class Ui(object):
         text = "[a]dd [c]onnect [d]elay [f]ilter [i]nfo [o]rder [p]aused [r]emove [h]elp [q]uit"
         self.scr.addstr(max_y-1, 0, '%s' % (text).ljust(max_x)[:max_x-1], curses.A_BOLD | curses.A_REVERSE)
 
+    #def move_tops(self):
+
     def display_tops(self):
         """Display tops to screen"""
         (max_y, max_x) = self.scr.getmaxyx()
@@ -376,9 +361,9 @@ class Ui(object):
             self.display_help()
         elif key == curses.KEY_LEFT:
             if self.cursor_pos_x > 0:
-                self.cursor_pos_x -= 1
+                self.cursor_pos_x -= 5
         elif key == curses.KEY_RIGHT:
-            self.cursor_pos_x += 1
+            self.cursor_pos_x += 5
         elif key == ord("d"):
             """Key to change delay"""
             self.edit_delay()
@@ -395,10 +380,10 @@ class Ui(object):
         elif key == curses.KEY_DOWN or key == curses.KEY_UP:
             if key == curses.KEY_DOWN:
                 if self.cursor_pos < len(self.pms[self.pm_index].process) - 1:
-                    self.cursor_pos = self.cursor_pos + 1
+                    self.cursor_pos = self.cursor_pos + 3
             if key == curses.KEY_UP:
                 if self.cursor_pos > 0:
-                    self.cursor_pos = self.cursor_pos - 1
+                    self.cursor_pos = self.cursor_pos - 3
             if self.fullscreen:
                 self.display_tops()
             else:
@@ -457,8 +442,6 @@ class Ui(object):
             if self.delay_counter  > self.delay:
                 self.delay_counter = 0
                 self.scr.erase()
-                #self.scr.refresh()
-                #curses.doupdate()
                 if self.fullscreen:
                     if self.current_session != None:
                         self.display_header()
@@ -471,4 +454,5 @@ class Ui(object):
                     self.scr.move(3, 0)
             else:
                 self.delay_counter = self.delay_counter + 0.1
-            time.sleep(0.01)
+            curses.napms(100)
+            #time.sleep(0.01)

@@ -62,6 +62,7 @@ class Session(threading.Thread):
         while 1:
             items = self.driver.tops()
             self.history.add(items)
+            time.sleep(self.interval)
 
     def stop(self):
         """Stop the session"""

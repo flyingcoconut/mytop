@@ -43,9 +43,7 @@ class LinuxProcessDriver(driver.Driver):
         return fields
 
     def tops(self):
-        """
-        Refresh sql information. Including uptime and the list of running process
-        """
+        """Linux process"""
         linux_process = psutil.get_process_list()
         all_process = []
         for pr in linux_process:
