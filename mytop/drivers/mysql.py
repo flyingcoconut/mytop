@@ -72,7 +72,7 @@ class MySQLDriver(driver.Driver):
                 if row[7] is None:
                     query = "None"
                 else:
-                    query = row[7]
+                    query = row[7].replace('\n', ' ')
                 p = {}
                 p["pid"] = row[0]
                 p["user"] = row[1]
