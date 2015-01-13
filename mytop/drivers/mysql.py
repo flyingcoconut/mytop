@@ -26,6 +26,7 @@ class MySQLDriver(driver.Driver):
     """MySQL Driver"""
     def __init__(self):
         driver.Driver.__init__(self)
+        self.name = "mysql"
         self.config.add("host", default="localhost", required=False, validator=str)
         self.config.add("user", default="root", required=False, validator=str)
         self.config.add("port", default=3306, required=False, validator=int)
@@ -59,16 +60,6 @@ class MySQLDriver(driver.Driver):
                     db_name = "None"
                 else:
                     db_name = row[3]
-                if row[4].lower().strip() == 'query':
-                    state = "Q"
-                elif row[4].lower().strip() == 'sleep':
-                    state = "S"
-                elif row[4].lower().strip() == 'connect':
-                    state = "C"
-                elif row[4].lower().strip() == 'bindlog':
-                    state = "B"
-                else:
-                    state = "U"
                 if row[7] is None:
                     query = "None"
                 else:
@@ -78,12 +69,12 @@ class MySQLDriver(driver.Driver):
                 p["user"] = row[1]
                 p["host"] = row[2].split(':')[0]
                 p["db"] = db_name
-                p["state"] = state
+                p["state"] = row[4]
                 p["time"] = row[5]
                 p["info"] = query
                 all_process.append(p)
         except all as e:
-            raise DriverError(e)
+            raise driver.DriverError(e)
         return all_process
 
     def info(self):
@@ -114,16 +105,9 @@ class MySQLDriver(driver.Driver):
 
 
     def kill(self, process):
-        """
-        Kil a mysql threads
-        """
-        try:
-            self._sql.execute('kill ' + process.pid)
-        except MySQLdb.OperationalError as e:
-            raise processmanager.ProcessManagerError("Impossible to kill pid : " + str(pid))
+        """Kill a mysql threads"""
+        pass
 
     def explain(self, process):
-        """
-        Explain a mysql query
-        """
-        print "todo"
+        """Explain a mysql query"""
+        pass

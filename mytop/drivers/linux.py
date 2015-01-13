@@ -19,7 +19,6 @@
 """Linux Driver"""
 import datetime
 import platform
-import time
 
 import driver
 import psutil

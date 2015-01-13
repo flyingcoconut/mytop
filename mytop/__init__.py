@@ -47,6 +47,10 @@ class History(object):
         pass
 
 class Session(threading.Thread):
+    STATUS_STOPED = 0
+    STATUS_INITIALIZING = 1
+    STATUS_RUNNING = 2
+    STATUS_ERROR = 3
     def __init__(self, driver, config, history=10):
         threading.Thread.__init__(self)
         self.driver = driver
@@ -54,12 +58,18 @@ class Session(threading.Thread):
         self.filters = []
         self.history = History(history)
         self.interval = 1
+        self.status = self.STATUS_STOPED
 
     def run(self):
         """Start the session"""
-        self.driver.configure(self.config)
-        self.driver.initialize()
+        self.status = self.STATUS_INITIALIZING
+        try:
+            self.driver.configure(self.config)
+            self.driver.initialize()
+        except Exception as error:
+            self.status = self.STATUS_ERROR
         while 1:
+            self.status = self.STATUS_RUNNING
             items = self.driver.tops()
             self.history.add(items)
             time.sleep(self.interval)
@@ -221,7 +231,7 @@ default_config = {
                 },
                 "state": {
                     "position": 4,
-                    "length": 5,
+                    "length": 7,
                     "alignment": "left",
                     "title": "State"
                 },
@@ -266,24 +276,18 @@ default_config = {
                     "alignment": "left",
                     "title": "State"
                 },
-                "host": {
-                    "position": 3,
-                    "length": 15,
-                    "alignment": "left",
-                    "title": "Hostname"
-                },
                 "time": {
-                    "position": 4,
+                    "position": 3,
                     "length": 8,
                     "alignment": "left",
                     "title": "Uptime"
                 },
                 "info": {
-                    "position": 5,
+                    "position": 4,
                     "length": 20,
                     "alignment": "left",
                     "title": "Info"
-                },
+                }
             },
             "headers": {}
         }
