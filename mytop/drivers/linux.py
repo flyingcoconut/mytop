@@ -51,7 +51,7 @@ class LinuxProcessDriver(driver.Driver):
             p = {}
             p["pid"] = int(pr.pid)
             p["user"] = str(pr.username)
-            p["state"] = "s"
+            p["state"] = self._get_process_status(pr.status)
             p["time"] = int(pr.create_time)
             p["info"] = str(info)
             all_process.append(p)
@@ -75,3 +75,9 @@ class LinuxProcessDriver(driver.Driver):
     def renice(self, process, nice):
         process = psutil.Process(process.pid)
         process.set_nice(nice)
+
+    def _get_process_status(self, status):
+        if status == psutil.STATUS_SLEEPING:
+            return "Sleeping"
+        else:
+            return status

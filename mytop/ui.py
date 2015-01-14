@@ -274,13 +274,14 @@ class Ui(object):
         if self.current_session == None:
             self.scr.hline(cnt-1, 0, " ", max_x, curses.A_BOLD | curses.A_REVERSE)
             return
-        column = [None] * len(mytop.default_config["drivers"]["mysql"]["process"].keys())
-        titles = [None] * len(mytop.default_config["drivers"]["mysql"]["process"].keys())
-        for key in mytop.default_config["drivers"]["mysql"]["process"].keys():
-            position = mytop.default_config["drivers"]["mysql"]["process"][key]["position"]
-            length = mytop.default_config["drivers"]["mysql"]["process"][key]["length"]
-            alignment = mytop.default_config["drivers"]["mysql"]["process"][key]["alignment"]
-            titles[position] = (mytop.default_config["drivers"]["mysql"]["process"][key]["title"])
+
+        column = [None] * len(mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys())
+        titles = [None] * len(mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys())
+        for key in mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys():
+            position = mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["position"]
+            length = mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["length"]
+            alignment = mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["alignment"]
+            titles[position] = (mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["title"])
             if alignment == "left":
                 column[position] = "{: <" + str(length) + "." + str(length) + "}"
             elif alignment == "right":
@@ -290,10 +291,10 @@ class Ui(object):
 
         self.scr.addstr(cnt - 1 , 0, " ".join(column).format(*titles).ljust(max_x)[self.cursor_pos_x:max_x], curses.A_BOLD|curses.A_REVERSE) #Display title
         for i in self.current_session.history.last()[self.cursor_pos:max_process + self.cursor_pos - 1]:
-            informations = [None] * len(mytop.default_config["drivers"]["mysql"]["process"].keys())
-            for key in mytop.default_config["drivers"]["mysql"]["process"].keys():
-                position = mytop.default_config["drivers"]["mysql"]["process"][key]["position"]
-                length = mytop.default_config["drivers"]["mysql"]["process"][key]["length"]
+            informations = [None] * len(mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys())
+            for key in mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys():
+                position = mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["position"]
+                length = mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["length"]
                 try:
                     informations[position] = i[key]
                 except KeyError:

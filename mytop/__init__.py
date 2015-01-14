@@ -281,7 +281,7 @@ default_config = {
                 },
                 "state": {
                     "position": 2,
-                    "length": 5,
+                    "length": 8,
                     "alignment": "left",
                     "title": "State"
                 },
