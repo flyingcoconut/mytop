@@ -33,7 +33,6 @@ class Ui(object):
         self.sessions = []
         self.current_session = None
         self.delay_counter = 1
-        self.delay = 1
         self.paused = False
         self.history = False
         self.history_pos = 0
@@ -81,14 +80,17 @@ class Ui(object):
                 self.error('Impossible to write file')
 
     def edit_delay(self):
+        if self.current_session == None:
+            self.error("No current session")
+            return
         value = self.ask('Specify delay in second : ')
         try:
             delay = int(value)
         except ValueError:
             self.error('Bad delay value')
         else:
-            self.delay_counter = delay
-            self.delay = delay
+            self.delay_counter = 0
+            self.current_session.delay = delay
 
     def command(self):
         command = self.ask("command : ")
@@ -157,12 +159,13 @@ class Ui(object):
      [f]ilter       Filter tops
      [F]ullscreen   Display in fullscreen mode
      [o]pen         Open a saved session or a record
-     [p]aused       Pause
+     [p]ause        Pause
      [r]emove       Remove current connection
      [R]ecord       Record a session
      [s]ave         Save session
      [w]rite        Write process to a csv file
      [h]elp         Display this help
+     [H]istory      Toggle history mode
      [q]uit         Quit
      [:]            Command
 
@@ -238,7 +241,7 @@ class Ui(object):
             index = "0"
         else:
             index  = str(self.sessions.index(self.current_session) + 1)
-        text = ""
+        text = " "
         text = text + "Sessions : " + index + "/" + str(len(self.sessions))
         if self.current_session == None:
             text = text + ", Driver : None"
@@ -247,9 +250,17 @@ class Ui(object):
         if self.current_session == None:
             text = text + ", Status : None"
         else:
-            text = text + ", Status : " + str(self.current_session.status)
-
-        self.scr.addstr(max_y-1, 0, '%s' % (text).ljust(max_x)[:max_x-1], curses.A_BOLD | curses.A_REVERSE)
+            if self.current_session.status == mytop.Session.STATUS_STOPPED:
+                text = text + ", Status : Stopped"
+            elif self.current_session.status == mytop.Session.STATUS_INITIALIZING:
+                text = text + ", Status : Initializing"
+            elif self.current_session.status == mytop.Session.STATUS_RUNNING:
+                text = text + ", Status : Running"
+            elif self.current_session.status == mytop.Session.STATUS_PAUSED:
+                text = text + ", Status : Paused"
+            elif self.current_session.status == mytop.Session.STATUS_ERROR:
+                text = text + ", Status : Error"
+        self.scr.addstr(max_y-1, 0, text.ljust(max_x - 1)[:max_x-1], curses.A_BOLD | curses.A_REVERSE)
 
     def display_tops(self):
         """Display tops to screen"""
@@ -278,7 +289,7 @@ class Ui(object):
                 column[position] = "{: ^" + str(length) + "." + str(length) + "}"
 
         self.scr.addstr(cnt - 1 , 0, " ".join(column).format(*titles).ljust(max_x)[self.cursor_pos_x:max_x], curses.A_BOLD|curses.A_REVERSE) #Display title
-        for i in self.current_session.history.last():
+        for i in self.current_session.history.last()[self.cursor_pos:max_process + self.cursor_pos - 1]:
             informations = [None] * len(mytop.default_config["drivers"]["mysql"]["process"].keys())
             for key in mytop.default_config["drivers"]["mysql"]["process"].keys():
                 position = mytop.default_config["drivers"]["mysql"]["process"][key]["position"]
@@ -314,7 +325,7 @@ class Ui(object):
             except IndexError:
                 self.error("Session %d does not exist" % (index + 1))
         elif key == ord("q"):
-            """Key to exit mytop"""
+            #Key to exit mytop
             self.quit()
         elif key == ord("h"):
             self.display_help()
@@ -324,13 +335,13 @@ class Ui(object):
         elif key == curses.KEY_RIGHT:
             self.cursor_pos_x += 5
         elif key == ord("d"):
-            """Key to change delay"""
+            #Key to change delay
             self.edit_delay()
         elif key == ord("e"):
-            """Key to edit the current connection"""
+            #Key to edit the current connection
             pass
         elif key == ord("f"):
-            """key to edit or add filter"""
+            #key to edit or add filter
             self.edit_filter()
 
         elif key == ord("w"):
@@ -342,14 +353,14 @@ class Ui(object):
             if self.cursor_pos > 0:
                 self.cursor_pos = self.cursor_pos - 1
         elif key == ord("p"):
-            #Key to pause mytop
-            if self.paused:
-                self.paused = False
-                self.delay_counter = self.delay
+            #Key to pause a session
+            if self.current_session == None:
+                self.error("No current session")
             else:
-                self.paused = True
+                self.current_session.pause()
+
         elif key == ord("r"):
-            """Remove a session"""
+            #Remove a session
             index = self.sessions.index(self.current_session)
             self.sessions.remove(self.current_session)
             if index > len(self.sessions) - 1:
@@ -365,6 +376,8 @@ class Ui(object):
         curses.wrapper(self.start_ui)
 
     def quit(self):
+        for session in self.sessions:
+            session.stop()
         sys.exit(0)
 
     def start_ui(self, scr):
@@ -381,7 +394,11 @@ class Ui(object):
             curses.noecho()
             key = self.scr.getch()
             self.handle_key(key)
-            if self.delay_counter  > self.delay:
+            if self.current_session == None:
+                delay = 1
+            else:
+                delay = self.current_session.delay
+            if self.delay_counter  > delay:
                 self.delay_counter = 0
                 self.scr.erase()
                 if self.fullscreen:
@@ -391,8 +408,6 @@ class Ui(object):
                     self.display_header()
                     self.display_tops()
                     self.display_footer()
-                    self.scr.move(3, 0)
             else:
                 self.delay_counter = self.delay_counter + 0.1
             curses.napms(10)
-            #time.sleep(0.01)

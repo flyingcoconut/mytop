@@ -47,18 +47,21 @@ class History(object):
         pass
 
 class Session(threading.Thread):
-    STATUS_STOPED = 0
+    STATUS_STOPPED = 0
     STATUS_INITIALIZING = 1
     STATUS_RUNNING = 2
-    STATUS_ERROR = 3
+    STATUS_PAUSED = 3
+    STATUS_ERROR = 4
     def __init__(self, driver, config, history=10):
         threading.Thread.__init__(self)
+        self.daemon = True
         self.driver = driver
         self.config = config
         self.filters = []
         self.history = History(history)
-        self.interval = 1
-        self.status = self.STATUS_STOPED
+        self.delay = 1
+        self.status = self.STATUS_STOPPED
+        self.last_error = None
 
     def run(self):
         """Start the session"""
@@ -68,19 +71,25 @@ class Session(threading.Thread):
             self.driver.initialize()
         except Exception as error:
             self.status = self.STATUS_ERROR
-        while 1:
-            self.status = self.STATUS_RUNNING
-            items = self.driver.tops()
-            self.history.add(items)
-            time.sleep(self.interval)
+            self.last_error = error.value
+        self.status = self.STATUS_RUNNING
+        while (self.status == self.STATUS_RUNNING):
+            try:
+                items = self.driver.tops()
+                self.history.add(items)
+            except Exception as error:
+                self.status = self.STATUS_ERROR
+                self.last_error = error.value
+            time.sleep(self.delay)
 
     def stop(self):
         """Stop the session"""
+        self.status = self.STATUS_STOPPED
         self.driver.terminate()
 
     def pause(self):
         """Pause the session"""
-        pass
+        self.status = self.STATUS_PAUSED
 
     def resume(self):
         """Resume the session"""

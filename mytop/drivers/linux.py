@@ -28,6 +28,7 @@ class LinuxProcessDriver(driver.Driver):
     """Linux Driver"""
     def __init__(self):
         driver.Driver.__init__(self)
+        self.name = "linux:process"
 
     def fields(self):
         """
