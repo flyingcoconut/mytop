@@ -47,13 +47,19 @@ class LinuxProcessDriver(driver.Driver):
         linux_process = psutil.get_process_list()
         all_process = []
         for pr in linux_process:
-            info = pr.name + " " + " ".join(pr.cmdline)
             p = {}
             p["pid"] = int(pr.pid)
             p["user"] = str(pr.username)
+            p["nice"] = pr.nice
+            memory = pr.get_ext_memory_info()
+            p["rss"] = memory[0]
+            p["vms"] = memory[1]
+            p["shared"] = memory[2]
             p["state"] = self._get_process_status(pr.status)
+            p["cpu"] = pr.get_cpu_percent(0)
+            p["memory"] = pr.get_memory_percent()
             p["time"] = int(pr.create_time)
-            p["info"] = str(info)
+            p["command"] = pr.name
             all_process.append(p)
         return all_process
 
