@@ -29,15 +29,10 @@ class Ui(object):
     """The ui class"""
     def __init__(self):
         self.fullscreen = False
-        self.extension = False
         self.sessions = []
         self.current_session = None
         self.delay_counter = 1
-        self.paused = False
-        self.history = False
-        self.history_pos = 0
         self.cursor_pos = 0
-        self.cursor_max_pos = 0
         self.scr = None
         self.cursor_pos_x = 0
 
@@ -141,7 +136,7 @@ class Ui(object):
         for conf in driver.config.configs:
             value = self.ask(conf.name + " : ")
             configs[conf.name] = value
-        session = mytop.Session(driver, configs)
+        session = mytop.Session(driver, configs, self.refresh)
         session.start()
         self.sessions.append(session)
         self.current_session = session
@@ -195,37 +190,6 @@ class Ui(object):
 
     def display_header(self):
         """Display header info"""
-        #(max_y, max_x) = self.scr.getmaxyx()
-        #if not self.fullscreen:
-        #    total_task = 0
-        #    filtered_task = 0
-        #    if len(self.pms[self.pm_index]._filter) > 0:
-        #        total_task = len(self.pms[self.pm_index]._process)
-        #        filtered_task = len(self.pms[self.pm_index].process)
-        #    else:
-        #        total_task = len(self.pms[self.pm_index].process)
-        #    if self.pms[self.pm_index].is_online:
-        #        status = "Online"
-        #    else:
-        #        status = "Offline"
-        #    self.scr.addstr(0, 0, "Tasks : %s Total, %s filtered, Conn : %d / %d" % (str(total_task), str(filtered_task), self.pm_index + 1, len(self.pms)))
-        #    self.scr.addstr(1, 0, 'User : %s, Host : %s, Port : %s, Uptime : %s' % (self.pms[self.pm_index].user[:10], self.pms[self.pm_index].host[:15], self.pms[self.pm_index].port, self.pms[self.pm_index].uptime))
-        #    self.scr.addstr(2, 0, 'backend : %s, Version : %s, Status : %s' % (self.pms[self.pm_index].BACKEND, self.pms[self.pm_index].version, status))
-        #    if self.pms[self.pm_index].BACKEND == "linux":
-        #        self.scr.addstr(4, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
-        #    elif self.pms[self.pm_index].BACKEND == "Unknown":
-        #        self.scr.addstr(4, 0, '%s' % (' '*(max_x)), curses.A_BOLD|curses.A_REVERSE)
-        #    else:
-        #        self.scr.addstr(4, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
-        #else:
-        #    if self.pms[self.pm_index].BACKEND == "linux":
-        #        self.scr.addstr(0, 0, '%-10s %-11s %-5s %-8s %-5s%s' % ("Pid", "User", "State", "Time", "Info", ' '*(max_x-39)), curses.A_BOLD|curses.A_REVERSE)
-        #    elif self.pms[self.pm_index].BACKEND == "Unknown":
-        #        self.scr.addstr(0, 0, '%s' % (' '*(max_x)), curses.A_BOLD|curses.A_REVERSE)
-        #    else:
-        #        self.scr.addstr(0, 0, '%-10s %-11s %-15s %-20s %-5s %-8s %-5s%s' % ('Id', 'User', 'Host', 'Db', 'State', 'Time', 'Info', ' '*(max_x-60)), curses.A_BOLD|curses.A_REVERSE)
-        #if not self.pms[self.pm_index].is_online and self.pms[self.pm_index].error is not None:
-        #    self.scr.addstr(3, 0, 'error : %s' % (self.pms[self.pm_index].error))
         pass
 
     def display_footer(self):
@@ -241,26 +205,28 @@ class Ui(object):
             index = "0"
         else:
             index  = str(self.sessions.index(self.current_session) + 1)
-        text = " "
-        text = text + "Sessions : " + index + "/" + str(len(self.sessions))
+        informations = []
+        informations.append("Sessions : " + index + "/" + str(len(self.sessions)))
         if self.current_session == None:
-            text = text + ", Driver : None"
+            informations.append("Driver : None")
         else:
-            text = text + ", Driver : " + self.current_session.driver.name
+            informations.append("Driver : " + self.current_session.driver.name)
         if self.current_session == None:
-            text = text + ", Status : None"
+            informations.append("Status : None")
+            informations.append("History : None")
         else:
             if self.current_session.status == mytop.Session.STATUS_STOPPED:
-                text = text + ", Status : Stopped"
+                informations.append("Status : Stopped")
             elif self.current_session.status == mytop.Session.STATUS_INITIALIZING:
-                text = text + ", Status : Initializing"
+                informations.append("Status : Initializing")
             elif self.current_session.status == mytop.Session.STATUS_RUNNING:
-                text = text + ", Status : Running"
+                informations.append("Status : Running")
             elif self.current_session.status == mytop.Session.STATUS_PAUSED:
-                text = text + ", Status : Paused"
+                informations.append("Status : Paused")
             elif self.current_session.status == mytop.Session.STATUS_ERROR:
-                text = text + ", Status : Error"
-        self.scr.addstr(max_y-1, 0, text.ljust(max_x - 1)[:max_x-1], curses.A_BOLD | curses.A_REVERSE)
+                informations.append("Status : Error")
+            informations.append("History : " + str(len(self.current_session.history)))
+        self.scr.addstr(max_y-1, 0, ", ".join(informations).ljust(max_x - 1)[:max_x-1], curses.A_BOLD | curses.A_REVERSE)
 
     def display_tops(self):
         """Display tops to screen"""
@@ -290,6 +256,7 @@ class Ui(object):
                 column[position] = "{: ^" + str(length) + "." + str(length) + "}"
 
         self.scr.addstr(cnt - 1 , 0, " ".join(column).format(*titles).ljust(max_x)[self.cursor_pos_x:max_x], curses.A_BOLD|curses.A_REVERSE) #Display title
+        #for i in sorted(self.current_session.history.last(), key=lambda k: k['cpu'], reverse=True)[self.cursor_pos:max_process + self.cursor_pos - 1]:
         for i in self.current_session.history.last()[self.cursor_pos:max_process + self.cursor_pos - 1]:
             informations = [None] * len(mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys())
             for key in mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys():
@@ -300,9 +267,6 @@ class Ui(object):
                 except KeyError:
                     informations[position] = ""
             informations = map(str, informations)
-            #if self.current_session.history.last().index(i) == self.cursor_pos:
-            #    self.scr.addstr(cnt, 0, " ".join(column).format(*informations)[self.cursor_pos_x:max_x], curses.A_REVERSE)
-            #else:
             self.scr.addstr(cnt, 0, " ".join(column).format(*informations)[self.cursor_pos_x:max_x])
             cnt += 1
 
@@ -381,11 +345,22 @@ class Ui(object):
             session.stop()
         sys.exit(0)
 
+    def refresh(self):
+        self.scr.erase()
+        if self.fullscreen:
+            self.display_tops()
+            self.display_footer()
+        else:
+            self.display_header()
+            self.display_tops()
+            self.display_footer()
+
     def start_ui(self, scr):
         """The main function loop"""
         self.scr = scr #Set screen
         try:
             curses.use_default_colors()
+            curses.start_color()
         except curses.error:
             pass
         while 1:
@@ -403,12 +378,12 @@ class Ui(object):
                 self.delay_counter = 0
                 self.scr.erase()
                 if self.fullscreen:
-                    self.display_header()
                     self.display_tops()
+                    self.display_footer()
                 else:
                     self.display_header()
                     self.display_tops()
                     self.display_footer()
             else:
                 self.delay_counter = self.delay_counter + 0.1
-            curses.napms(10)
+            time.sleep(0.01)

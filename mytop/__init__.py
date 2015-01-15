@@ -46,6 +46,9 @@ class History(object):
         """Return first frame"""
         pass
 
+    def __len__(self):
+        return len(self._items)
+
 class Session(threading.Thread):
     STATUS_STOPPED = 0
     STATUS_INITIALIZING = 1
@@ -269,33 +272,69 @@ default_config = {
             "process": {
                 "pid": {
                     "position": 0,
-                    "length": 10,
+                    "length": 5,
                     "alignment": "right",
-                    "title": "Pid"
+                    "title": "PID"
                 },
                 "user": {
                     "position": 1,
-                    "length": 11,
+                    "length": 9,
                     "alignment": "left",
-                    "title": "Username"
+                    "title": "USER"
+                },
+                "nice": {
+                    "position": 2,
+                    "length": 2,
+                    "alignment": "right",
+                    "title": "NI"
+                },
+                "vms": {
+                    "position": 3,
+                    "length": 7,
+                    "alignment": "right",
+                    "title": "VIRT"
+                },
+                "rss": {
+                    "position": 4,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "RES"
+                },
+                "shared": {
+                    "position": 5,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "SHR"
                 },
                 "state": {
-                    "position": 2,
-                    "length": 8,
-                    "alignment": "left",
-                    "title": "State"
+                    "position": 6,
+                    "length": 1,
+                    "alignment": "right",
+                    "title": "S"
+                },
+                "cpu": {
+                    "position": 7,
+                    "length": 4,
+                    "alignment": "right",
+                    "title": "%CPU"
+                },
+                "memory": {
+                    "position": 8,
+                    "length": 4,
+                    "alignment": "right",
+                    "title": "%MEM"
                 },
                 "time": {
-                    "position": 3,
+                    "position": 9,
                     "length": 8,
-                    "alignment": "left",
-                    "title": "Uptime"
+                    "alignment": "right",
+                    "title": "TIME+"
                 },
-                "info": {
-                    "position": 4,
-                    "length": 20,
+                "command": {
+                    "position": 10,
+                    "length": 10,
                     "alignment": "left",
-                    "title": "Info"
+                    "title": "COMMAND"
                 }
             },
             "headers": {}
