@@ -3,7 +3,7 @@
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
 # Description : SQL process viewer
-#  
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -13,7 +13,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -32,13 +32,13 @@ class MongoDBDriver(driver.Driver):
         driver.Driver.__init__(self)
         self._host = None
         self._port = None
-        
+
     def tops(self):
         """
         Refresh sql information. Including uptime and the list of running process
         """
         try:
-            mongodb_process = self._sql.admin['$cmd.sys.inprog'].find_one({'$all': True}) 
+            mongodb_process = self._sql.admin['$cmd.sys.inprog'].find_one({'$all': True})
         except:
             raise processmanager.ProcessManagerError("Could not retieve process")
         all_process = []
@@ -63,7 +63,7 @@ class MongoDBDriver(driver.Driver):
                 p = process.Process(row["opid"], "", row[u"client"].split(':')[0], row[u"ns"].split(".")[0], state, time, str(row[u"query"]))
                 all_process.append(p)
         except all as e:
-            print e
+            print(e)
             pass
         if len(self._history) > self._max_history:
             self._history.pop(0)
@@ -91,6 +91,3 @@ class MongoDBDriver(driver.Driver):
             self._port = self.config["port"]
         except:
             raise driver.DriverError("Bad config")
-
-   
-

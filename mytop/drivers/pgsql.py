@@ -59,7 +59,7 @@ class pgSQLDriver(driver.Driver):
                 p = process.Process(row["opid"], "", row[u"client"].split(':')[0], row[u"ns"].split(".")[0], state, time, str(row[u"query"]))
                 all_process.append(p)
         except all as e:
-            print e
+            print(e)
             pass
         if len(self._history) > self._max_history:
             self._history.pop(0)

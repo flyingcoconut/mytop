@@ -50,7 +50,7 @@ class RedisDriver(driver.Driver):
                 p["cmd"] = row["cmd"]
                 all_process.append(p)
         except all as e:
-            print e
+            print(e)
             pass
         return all_process
 
