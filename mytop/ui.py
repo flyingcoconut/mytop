@@ -21,6 +21,7 @@ import time
 import curses
 import sys
 import os
+import select
 
 import mytop
 from mytop import drivers
@@ -106,7 +107,7 @@ class Ui(object):
         self.scr.clrtoeol()
         self.scr.addstr(ques_pos, 0, question[:max_x])
         value = self.scr.getstr()
-        return value
+        return value.decode("utf-8")
 
     def error(self, error):
         """Ask question"""
@@ -115,13 +116,12 @@ class Ui(object):
             ques_pos = max_y - 1
         else:
             ques_pos = 3
-        self.scr.nodelay(0)
         curses.echo()
         self.scr.move(ques_pos, 0)
         self.scr.clrtoeol()
         self.scr.addstr(ques_pos, 0, error.ljust(max_x)[:max_x])
         self.scr.refresh()
-        time.sleep(1)
+        time.sleep(2)
 
     def add_session(self):
         """Add session"""
@@ -130,7 +130,7 @@ class Ui(object):
             if value in drivers.list_drivers():
                 driver = drivers.load(value)
             else:
-                self.error('driver is not valid')
+                self.error("driver is not valid : " + value)
                 return
         configs = {}
         for conf in driver.config.configs:
@@ -172,9 +172,8 @@ class Ui(object):
         curses.noecho()
         self.scr.addstr(1, 0, help_text)
         self.scr.addstr(max_y - 1, 1, "Press any key to quit")
+        self.scr.refresh()
         self.scr.getch()
-        self.scr.nodelay(1)
-        curses.noecho()
 
     def display_history(self, key):
         """Toogle history mode"""
@@ -327,6 +326,7 @@ class Ui(object):
         elif key == ord("r"):
             #Remove a session
             index = self.sessions.index(self.current_session)
+            self.current_session.stop()
             self.sessions.remove(self.current_session)
             if index > len(self.sessions) - 1:
                 try:
@@ -347,6 +347,10 @@ class Ui(object):
 
     def refresh(self):
         self.scr.erase()
+        self.scr.nodelay(1)
+        self.scr.keypad(1)
+        curses.curs_set(0)
+        curses.noecho()
         if self.fullscreen:
             self.display_tops()
             self.display_footer()
@@ -354,6 +358,7 @@ class Ui(object):
             self.display_header()
             self.display_tops()
             self.display_footer()
+        self.scr.refresh()
 
     def start_ui(self, scr):
         """The main function loop"""
@@ -363,27 +368,16 @@ class Ui(object):
             curses.start_color()
         except curses.error:
             pass
+        self.refresh()
         while 1:
-            self.scr.nodelay(1)
-            self.scr.keypad(1)
-            curses.curs_set(0)
-            curses.noecho()
-            key = self.scr.getch()
-            self.handle_key(key)
             if self.current_session == None:
-                delay = 1
+                delay = None
             else:
                 delay = self.current_session.delay
-            if self.delay_counter  > delay:
-                self.delay_counter = 0
-                self.scr.erase()
-                if self.fullscreen:
-                    self.display_tops()
-                    self.display_footer()
-                else:
-                    self.display_header()
-                    self.display_tops()
-                    self.display_footer()
-            else:
-                self.delay_counter = self.delay_counter + 0.1
-            time.sleep(0.01)
+            try:
+                select.select([sys.stdin], [], [], delay)
+            except select.error:
+                pass
+            key = self.scr.getch()
+            self.handle_key(key)
+            self.refresh()

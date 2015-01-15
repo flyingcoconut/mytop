@@ -17,8 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import datetime
-import os
 import time
 import threading
 
@@ -32,7 +30,6 @@ class History(object):
     def add(self, items):
         """Add a frame"""
         self._items.append(items)
-        self._timeline[time.time()] = items
 
     def last(self):
         """Return last frame"""
@@ -62,7 +59,7 @@ class Session(threading.Thread):
         self.config = config
         self.filters = []
         self.history = History(history)
-        self.delay = 1
+        self.delay = 3
         self.status = self.STATUS_STOPPED
         self.last_error = None
 
@@ -78,8 +75,7 @@ class Session(threading.Thread):
         self.status = self.STATUS_RUNNING
         while (self.status == self.STATUS_RUNNING):
             try:
-                items = self.driver.tops()
-                self.history.add(items)
+                self.history.add(self.driver.tops())
             except Exception as error:
                 self.status = self.STATUS_ERROR
                 self.last_error = error.value
@@ -201,7 +197,7 @@ class Config(object):
         """
         Write config to file
         """
-        print "todo"
+        pass
 
     def parse(self):
         """
