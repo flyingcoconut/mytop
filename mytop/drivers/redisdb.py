@@ -30,6 +30,7 @@ class RedisDriver(driver.Driver):
         driver.Driver.__init__(self)
         self.config.add("host", default="localhost", required=False, validator=str)
         self._sql = None
+        self.name = "redis"
 
     def tops(self):
         """
