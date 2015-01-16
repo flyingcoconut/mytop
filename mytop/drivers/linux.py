@@ -25,7 +25,7 @@ import psutil
 
 
 class LinuxProcessDriver(driver.Driver):
-    """Linux Driver"""
+    """Linux Process Driver"""
     def __init__(self):
         driver.Driver.__init__(self)
         self.name = "linux:process"
@@ -86,3 +86,66 @@ class LinuxProcessDriver(driver.Driver):
             return "Sleeping"
         else:
             return status
+
+class LinuxDiskDriver(driver.Driver):
+    """Linux Disk Driver"""
+    def __init__(self):
+        driver.Driver.__init__(self)
+        self.name = "linux:disk"
+
+    def fields(self):
+        """
+        Return all disponible fields
+        """
+        fields = {}
+        fields["pid"] = int
+        fields["user"] = str
+        fields["state"] = str
+        fields["time"] = str
+        fields["info"] = str
+        return fields
+
+    def tops(self):
+        """Linux process"""
+        all_disk = []
+        iostats = psutil.disk_io_counters(True)
+        #partitions = psutil.disk_partitions(False)
+        for disk in iostats:
+            d = dict(iostats[disk]._asdict())
+            d["partition"] = disk
+            all_disk.append(d)
+        return all_disk
+
+    def info(self):
+        pass
+
+class LinuxNetworkDriver(driver.Driver):
+    """Linux Network Driver"""
+    def __init__(self):
+        driver.Driver.__init__(self)
+        self.name = "linux:network"
+
+    def fields(self):
+        """
+        Return all disponible fields
+        """
+        fields = {}
+        fields["pid"] = int
+        fields["user"] = str
+        fields["state"] = str
+        fields["time"] = str
+        fields["info"] = str
+        return fields
+
+    def tops(self):
+        """Linux process"""
+        all_nics = []
+        network = psutil.net_io_counters(pernic=True)
+        for nic in network:
+            n = dict(network[nic]._asdict()) #Convert namedtuple into dict
+            n["interface"] = nic
+            all_nics.append(n)
+        return all_nics
+
+    def info(self):
+        pass

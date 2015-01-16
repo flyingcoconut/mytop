@@ -335,6 +335,65 @@ default_config = {
             },
             "headers": {}
         },
+        "linux:network": {
+            "process": {
+                "interface": {
+                    "position": 0,
+                    "length": 5,
+                    "alignment": "left",
+                    "title": "INTERFACE"
+                },
+                "packets_sent": {
+                    "position": 1,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "PKG S"
+                },
+                "packets_recv": {
+                    "position": 2,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "PKG R"
+                },
+                "bytes_sent": {
+                    "position": 3,
+                    "length": 7,
+                    "alignment": "right",
+                    "title": "BYTES S"
+                },
+                "bytes_recv": {
+                    "position": 4,
+                    "length": 7,
+                    "alignment": "right",
+                    "title": "BYTES R"
+                },
+                "dropout": {
+                    "position": 5,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "DROP O"
+                },
+                "dropin": {
+                    "position": 6,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "DROP I"
+                },
+                "errout": {
+                    "position": 7,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "ERR O"
+                },
+                "errin": {
+                    "position": 8,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "ERR I"
+                }
+            },
+            "headers": {}
+        },
         "apache": {
             "process": {
                 "server": {

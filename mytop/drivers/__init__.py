@@ -21,6 +21,8 @@ import importlib
 
 __drivers__ = {
     'linux:process' : ['linux', 'LinuxProcessDriver'],
+    'linux:network' : ['linux', 'LinuxNetworkDriver'],
+    'linux:disk' : ['linux', 'LinuxDiskDriver'],
     'mysql' : ['mysql', 'MySQLDriver'],
     'redis' : ['redisdb', 'RedisDriver'],
     'apache': ['apache', 'ApacheDriver']
