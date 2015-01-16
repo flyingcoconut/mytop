@@ -334,6 +334,89 @@ default_config = {
                 }
             },
             "headers": {}
+        },
+        "apache": {
+            "process": {
+                "server": {
+                    "position": 0,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "Srv"
+                },
+                "pid": {
+                    "position": 1,
+                    "length": 9,
+                    "alignment": "right",
+                    "title": "PID"
+                },
+                "access": {
+                    "position": 2,
+                    "length": 2,
+                    "alignment": "left",
+                    "title": "Acc"
+                },
+                "mode": {
+                    "position": 3,
+                    "length": 7,
+                    "alignment": "left",
+                    "title": "M"
+                },
+                "cpu": {
+                    "position": 4,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "CPU"
+                },
+                "seconds": {
+                    "position": 5,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "SS"
+                },
+                "required": {
+                    "position": 6,
+                    "length": 1,
+                    "alignment": "right",
+                    "title": "Req"
+                },
+                "connection": {
+                    "position": 7,
+                    "length": 4,
+                    "alignment": "right",
+                    "title": "Conn"
+                },
+                "Child": {
+                    "position": 8,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "Child"
+                },
+                "slot": {
+                    "position": 9,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "Slot"
+                },
+                "client": {
+                    "position": 10,
+                    "length": 11,
+                    "alignment": "left",
+                    "title": "Client"
+                },
+                "vhost": {
+                    "position": 11,
+                    "length": 5,
+                    "alignment": "left",
+                    "title": "VHost"
+                },
+                "request": {
+                    "position": 12,
+                    "length": 10,
+                    "alignment": "left",
+                    "title": "Request"
+                }
+            },
+            "headers": {}
         }
     }
 }

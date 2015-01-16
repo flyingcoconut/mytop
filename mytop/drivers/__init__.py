@@ -22,7 +22,8 @@ import importlib
 __drivers__ = {
     'linux:process' : ['linux', 'LinuxProcessDriver'],
     'mysql' : ['mysql', 'MySQLDriver'],
-    'redis' : ['redisdb', 'RedisDriver']
+    'redis' : ['redisdb', 'RedisDriver'],
+    'apache': ['apache', 'ApacheDriver']
 }
 
 def list_drivers():
