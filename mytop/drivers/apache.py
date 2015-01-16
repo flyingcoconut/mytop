@@ -69,6 +69,7 @@ class ApacheDriver(driver.Driver):
             request["child"] = items[8].text
             request["slot"] = items[9].text
             request["client"] = items[10].text
+            request["vhost"] = items[11].text
             request["request"] = items[12].text
             all_request.append(request)
         return all_request

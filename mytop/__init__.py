@@ -351,20 +351,20 @@ default_config = {
                 },
                 "access": {
                     "position": 2,
-                    "length": 2,
+                    "length": 13,
                     "alignment": "left",
                     "title": "Acc"
                 },
                 "mode": {
                     "position": 3,
-                    "length": 7,
+                    "length": 1,
                     "alignment": "left",
                     "title": "M"
                 },
                 "cpu": {
                     "position": 4,
                     "length": 6,
-                    "alignment": "right",
+                    "alignment": "left",
                     "title": "CPU"
                 },
                 "seconds": {
@@ -385,7 +385,7 @@ default_config = {
                     "alignment": "right",
                     "title": "Conn"
                 },
-                "Child": {
+                "child": {
                     "position": 8,
                     "length": 5,
                     "alignment": "right",
@@ -405,13 +405,13 @@ default_config = {
                 },
                 "vhost": {
                     "position": 11,
-                    "length": 5,
+                    "length": 20,
                     "alignment": "left",
                     "title": "VHost"
                 },
                 "request": {
                     "position": 12,
-                    "length": 10,
+                    "length": 20,
                     "alignment": "left",
                     "title": "Request"
                 }
