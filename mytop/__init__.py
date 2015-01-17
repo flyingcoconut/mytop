@@ -339,7 +339,7 @@ default_config = {
             "process": {
                 "interface": {
                     "position": 0,
-                    "length": 5,
+                    "length": 9,
                     "alignment": "left",
                     "title": "INTERFACE"
                 },

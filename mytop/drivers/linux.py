@@ -154,7 +154,7 @@ class LinuxNetworkDriver(driver.Driver):
     def tops(self):
         """Linux process"""
         all_nics = []
-        network = psutil.net_io_counters(pernic=True)
+        network = psutil.network_io_counters(pernic=True)
         for nic in network:
             n = dict(network[nic]._asdict()) #Convert namedtuple into dict
             n["interface"] = nic
