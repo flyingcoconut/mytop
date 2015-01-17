@@ -394,6 +394,71 @@ default_config = {
             },
             "headers": {}
         },
+        "linux:disk": {
+            "process": {
+                "device": {
+                    "position": 0,
+                    "length": 6,
+                    "alignment": "left",
+                    "title": "DEVICE"
+                },
+                "read_bytes": {
+                    "position": 1,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "READ B"
+                },
+                "write_bytes": {
+                    "position": 2,
+                    "length": 7,
+                    "alignment": "right",
+                    "title": "WRITE B"
+                },
+                "read_time": {
+                    "position": 3,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "READ T"
+                },
+                "write_time": {
+                    "position": 4,
+                    "length": 7,
+                    "alignment": "right",
+                    "title": "WRITE T"
+                },
+                "read_count": {
+                    "position": 5,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "READ C"
+                },
+                "write_count": {
+                    "position": 6,
+                    "length": 7,
+                    "alignment": "right",
+                    "title": "WRITE C"
+                },
+                "mountpoint": {
+                    "position": 7,
+                    "length": 10,
+                    "alignment": "left",
+                    "title": "MOUNT"
+                },
+                "fstype": {
+                    "position": 8,
+                    "length": 4,
+                    "alignment": "left",
+                    "title": "FS"
+                },
+                "opts": {
+                    "position": 9,
+                    "length": 20,
+                    "alignment": "left",
+                    "title": "OPTS"
+                }
+            },
+            "headers": {}
+        },
         "apache": {
             "process": {
                 "server": {

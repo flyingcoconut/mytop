@@ -107,14 +107,28 @@ class LinuxDiskDriver(driver.Driver):
 
     def tops(self):
         """Linux process"""
-        all_disk = []
+        all_disks = []
         iostats = psutil.disk_io_counters(True)
-        #partitions = psutil.disk_partitions(False)
+        partitions = self._get_partitions()
         for disk in iostats:
             d = dict(iostats[disk]._asdict())
-            d["partition"] = disk
-            all_disk.append(d)
-        return all_disk
+            try:
+                d.update(partitions["/dev/" + disk])
+            except KeyError:
+                d["mountpoint"] = "-"
+                d["fstype"] = "-"
+                d["opts"] = "-"
+            d["device"] = disk
+            all_disks.append(d)
+        return all_disks
+
+    def _get_partitions(self):
+        partitions = {}
+        for partition in psutil.disk_partitions(False):
+            informations = dict(partition._asdict())
+            del(informations["device"])
+            partitions[partition.device] = informations
+        return partitions
 
     def info(self):
         pass
