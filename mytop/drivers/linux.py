@@ -48,17 +48,17 @@ class LinuxProcessDriver(driver.Driver):
         for pr in psutil.process_iter():
             p = {}
             p["pid"] = pr.pid
-            p["user"] = pr.username
-            p["nice"] = pr.nice
+            p["user"] = pr.username()
+            p["nice"] = pr.nice()
             memory = pr.get_ext_memory_info()
             p["rss"] = memory[0]
             p["vms"] = memory[1]
             p["shared"] = memory[2]
-            p["state"] = self._get_process_status(pr.status)
+            p["state"] = pr.status()
             p["cpu"] = pr.get_cpu_percent(0)
             p["memory"] = pr.get_memory_percent()
-            p["time"] = pr.create_time
-            p["command"] = pr.name
+            p["time"] = pr.create_time()
+            p["command"] = pr.name()
             all_process.append(p)
         return all_process
 
@@ -81,11 +81,6 @@ class LinuxProcessDriver(driver.Driver):
         process = psutil.Process(process.pid)
         process.set_nice(nice)
 
-    def _get_process_status(self, status):
-        if status == psutil.STATUS_SLEEPING:
-            return "Sleeping"
-        else:
-            return status
 
 class LinuxDiskDriver(driver.Driver):
     """Linux Disk Driver"""
@@ -160,6 +155,66 @@ class LinuxNetworkDriver(driver.Driver):
             n["interface"] = nic
             all_nics.append(n)
         return all_nics
+
+    def info(self):
+        pass
+
+class LinuxSocketDriver(driver.Driver):
+    """Linux Network Driver"""
+    def __init__(self):
+        driver.Driver.__init__(self)
+        self.name = "linux:socket"
+
+    def fields(self):
+        """
+        Return all disponible fields
+        """
+        fields = {}
+        fields["pid"] = int
+        fields["user"] = str
+        fields["state"] = str
+        fields["time"] = str
+        fields["info"] = str
+        return fields
+
+    def tops(self):
+        """Linux process"""
+        all_sockets = []
+        sockets = psutil.net_connections("all")
+        for socket in sockets:
+            sock = {}
+            sock["fd"] = socket.fd
+            sock["family"] = self._get_family(socket.family)
+            sock["type"] = self._get_type(socket.type)
+            sock["laddr"] = socket.laddr
+            #sock["sport"] = socket.laddr[1]
+            sock["raddr"] = socket.raddr
+            #sock["rport"] = socket.raddr[1]
+            sock["status"] = socket.status
+            sock["pid"] = socket.pid
+            all_sockets.append(sock)
+        return all_sockets
+
+    def _get_family(self, family):
+        families = {
+            1 : "AF_UNIX",
+            2 : "AF_INET",
+            10: "AF_INET6"
+        }
+        try:
+            return families[family]
+        except KeyError:
+            return family
+
+    def _get_type(self, type):
+        types = {
+            1 : "STREAM",
+            2 : "DGRAM"
+        }
+        try:
+            return types[type]
+        except KeyError:
+            return type
 
     def info(self):
         pass

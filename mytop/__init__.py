@@ -459,6 +459,53 @@ default_config = {
             },
             "headers": {}
         },
+        "linux:socket": {
+            "process": {
+                "fd": {
+                    "position": 0,
+                    "length": 2,
+                    "alignment": "right",
+                    "title": "FD"
+                },
+                "family": {
+                    "position": 1,
+                    "length": 10,
+                    "alignment": "left",
+                    "title": "FAMILY"
+                },
+                "type": {
+                    "position": 2,
+                    "length": 6,
+                    "alignment": "left",
+                    "title": "TYPE"
+                },
+                "laddr": {
+                    "position": 3,
+                    "length": 20,
+                    "alignment": "left",
+                    "title": "LADDR"
+                },
+                "raddr": {
+                    "position": 4,
+                    "length": 20,
+                    "alignment": "left",
+                    "title": "RADDR"
+                },
+                "status": {
+                    "position": 5,
+                    "length": 10,
+                    "alignment": "left",
+                    "title": "STATUS"
+                },
+                "pid": {
+                    "position": 6,
+                    "length": 7,
+                    "alignment": "right",
+                    "title": "PID"
+                }
+            },
+            "headers": {}
+        },
         "apache": {
             "process": {
                 "server": {

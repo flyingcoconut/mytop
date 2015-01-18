@@ -23,6 +23,7 @@ __drivers__ = {
     'linux:process' : ['linux', 'LinuxProcessDriver'],
     'linux:network' : ['linux', 'LinuxNetworkDriver'],
     'linux:disk' : ['linux', 'LinuxDiskDriver'],
+    'linux:socket' : ['linux', 'LinuxSocketDriver'],
     'mysql' : ['mysql', 'MySQLDriver'],
     'redis' : ['redisdb', 'RedisDriver'],
     'apache': ['apache', 'ApacheDriver']
