@@ -17,25 +17,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys
 import signal
 import argparse
 
 from mytop import ui
 
 VERSION = "0.1"
-
+interface = ui.CursesUi()
 def signal_handler(sig, frame):
     """Get signals and exit"""
-    sys.exit(1)
+    interface.quit()
 
 def main():
     #Initialise signal to catch SIGINT
     signal.signal(signal.SIGINT, signal_handler)
     #Call the parser function
     parser = argparse.ArgumentParser(description='mytop')
-    u = ui.Ui()
-    u.start()
+    interface.start()
 
 if __name__ == '__main__':
     main()

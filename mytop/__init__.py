@@ -18,6 +18,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import time
+import zlib
+import pickle
 import threading
 
 
@@ -29,12 +31,13 @@ class History(object):
 
     def add(self, items):
         """Add a frame"""
-        self._items.append(items)
+        compressed = zlib.compress(pickle.dumps(items))
+        self._items.append(compressed)
 
     def last(self):
         """Return last frame"""
         try:
-            items = self._items[-1]
+            items = pickle.loads(zlib.decompress(self._items[-1]))
         except IndexError:
             items = []
         return items
@@ -333,7 +336,7 @@ default_config = {
                     "title": "COMMAND"
                 }
             },
-            "headers": {}
+            "sortby" : "cpu"
         },
         "linux:network": {
             "process": {
@@ -506,6 +509,78 @@ default_config = {
             },
             "headers": {}
         },
+        "linux:cpu": {
+            "process": {
+                "cpu": {
+                    "position": 0,
+                    "length": 4,
+                    "alignment": "right",
+                    "title": "CPU"
+                },
+                "user": {
+                    "position": 1,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "%USER"
+                },
+                "nice": {
+                    "position": 2,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "%NICE"
+                },
+                "system": {
+                    "position": 3,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "%SYS"
+                },
+                "idle": {
+                    "position": 4,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "%IDLE"
+                },
+                "iowait": {
+                    "position": 5,
+                    "length": 7,
+                    "alignment": "right",
+                    "title": "%IOWAIT"
+                },
+                "irq": {
+                    "position": 6,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "%IRQ"
+                },
+                "softirq": {
+                    "position": 7,
+                    "length": 8,
+                    "alignment": "right",
+                    "title": "%SOFTIRQ"
+                },
+                "steal": {
+                    "position": 8,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "%STEAL"
+                },
+                "guest": {
+                    "position": 9,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "%GUEST"
+                },
+                "guest_nice": {
+                    "position": 10,
+                    "length": 11,
+                    "alignment": "right",
+                    "title": "%GUEST NICE"
+                }
+
+            },
+            "headers": {}
+        },
         "apache": {
             "process": {
                 "server": {
@@ -588,6 +663,107 @@ default_config = {
                 }
             },
             "headers": {}
+        },
+        "elasticsearch": {
+            "process": {
+                "index": {
+                    "position": 0,
+                    "length": 20,
+                    "alignment": "left",
+                    "title": "INDEX"
+                },
+                "size": {
+                    "position": 1,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "SIZE"
+                },
+                "max_doc": {
+                    "position": 2,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "MAX"
+                },
+                "num_doc": {
+                    "position": 3,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "NUM"
+                },
+                "deleted_doc": {
+                    "position": 4,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "DEL"
+                },
+                "merges_total_docs": {
+                    "position": 5,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "MTOTAL"
+                },
+                "merges_total_size": {
+                    "position": 6,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "MSIZE"
+                },
+                "merges_current_docs": {
+                    "position": 7,
+                    "length": 12,
+                    "alignment": "right",
+                    "title": "MCURDOCS"
+                },
+                "merges_current": {
+                    "position": 8,
+                    "length": 5,
+                    "alignment": "right",
+                    "title": "MCUR"
+                },
+                "merges_total_time": {
+                    "position": 9,
+                    "length": 9,
+                    "alignment": "right",
+                    "title": "MTOTALTIME"
+                },
+                "merges_total": {
+                    "position": 10,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "MTOTAL"
+                },
+                "shards": {
+                    "position": 11,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "SHARDS"
+                },
+                "refresh_total_time": {
+                    "position": 12,
+                    "length": 10,
+                    "alignment": "right",
+                    "title": "RTOTALTIME"
+                },
+                "refresh_total": {
+                    "position": 13,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "RTOTAL"
+                },
+                "flush_total_time": {
+                    "position": 14,
+                    "length": 10,
+                    "alignment": "right",
+                    "title": "FTOTALTIME"
+                },
+                "flush_total": {
+                    "position": 15,
+                    "length": 6,
+                    "alignment": "right",
+                    "title": "FTOTAL"
+                }
+            },
+            "sortby": "num_doc"
         }
     }
 }

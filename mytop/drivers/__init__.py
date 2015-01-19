@@ -24,9 +24,11 @@ __drivers__ = {
     'linux:network' : ['linux', 'LinuxNetworkDriver'],
     'linux:disk' : ['linux', 'LinuxDiskDriver'],
     'linux:socket' : ['linux', 'LinuxSocketDriver'],
+    'linux:cpu' : ['linux', 'LinuxCpuDriver'],
     'mysql' : ['mysql', 'MySQLDriver'],
     'redis' : ['redisdb', 'RedisDriver'],
-    'apache': ['apache', 'ApacheDriver']
+    'apache': ['apache', 'ApacheDriver'],
+    'elasticsearch' : ['elasticsearch', 'ElasticsearchDriver'],
 }
 
 def list_drivers():
