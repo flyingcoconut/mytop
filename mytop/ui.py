@@ -26,7 +26,7 @@ import select
 import mytop
 from mytop import drivers
 
-class Ui(object):
+class CursesUi(object):
     """The ui class"""
     def __init__(self):
         self.fullscreen = False
@@ -253,10 +253,13 @@ class Ui(object):
                 column[position] = "{: >" + str(length) + "." + str(length) + "}"
             elif alignment == "center":
                 column[position] = "{: ^" + str(length) + "." + str(length) + "}"
-
-        self.scr.addstr(cnt - 1 , 0, " ".join(column).format(*titles).ljust(max_x)[self.cursor_pos_x:max_x], curses.A_BOLD|curses.A_REVERSE) #Display title
-        #for i in sorted(self.current_session.history.last(), key=lambda k: k['cpu'], reverse=True)[self.cursor_pos:max_process + self.cursor_pos - 1]:
-        for i in self.current_session.history.last()[self.cursor_pos:max_process + self.cursor_pos - 1]:
+        self.scr.addstr(cnt - 1 , 0, " ".join(column).format(*titles).ljust(max_x)[self.cursor_pos_x:max_x], curses.A_BOLD|curses.A_REVERSE) #Display title bar
+        try:
+            sortby = mytop.default_config["drivers"][self.current_session.driver.name]["sortby"]
+            tops = sorted(self.current_session.history.last(), key=lambda k: k[sortby], reverse=True)
+        except KeyError:
+            tops = self.current_session.history.last()
+        for i in tops[self.cursor_pos:max_process + self.cursor_pos - 1]:
             informations = [None] * len(mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys())
             for key in mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys():
                 position = mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["position"]
@@ -282,7 +285,7 @@ class Ui(object):
                 self.fullscreen = True
                 curses.curs_set(0)
         elif key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"), ord("6"), ord("7"), ord("8"), ord("9")]:
-            """All keyboard key number are used to select wich connection to display"""
+            #All keyboard key number are used to select wich connection to display
             index = int(chr(key)) - 1
             try:
                 self.current_session = self.sessions[index]
@@ -337,7 +340,7 @@ class Ui(object):
                 self.current_session = self.sessions[index - 1]
 
     def start(self):
-        """Wrappe function if bug and return to display properly"""
+        """Wrappe function if bug happen and reset terminal properly"""
         curses.wrapper(self.start_ui)
 
     def quit(self):
@@ -375,7 +378,7 @@ class Ui(object):
             else:
                 delay = self.current_session.delay
             try:
-                select.select([sys.stdin], [], [], delay)
+                select.select([sys.stdin], [], [], delay) #Wait for input
             except select.error:
                 pass
             key = self.scr.getch()
