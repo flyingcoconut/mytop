@@ -21,9 +21,8 @@ Apache Driver
 """
 import urllib2
 
+from . import driver
 from bs4 import BeautifulSoup
-import urllib2
-import driver
 
 
 class ApacheDriver(driver.Driver):

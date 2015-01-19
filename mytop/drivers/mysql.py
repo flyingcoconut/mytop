@@ -19,7 +19,7 @@
 """MySQL Driver"""
 import datetime
 
-import driver
+from . import driver
 import MySQLdb
 
 class MySQLDriver(driver.Driver):

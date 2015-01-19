@@ -20,7 +20,7 @@
 import datetime
 import platform
 
-import driver
+from . import driver
 import psutil
 
 
@@ -215,6 +215,38 @@ class LinuxSocketDriver(driver.Driver):
             return types[type]
         except KeyError:
             return type
+
+    def info(self):
+        pass
+
+class LinuxCpuDriver(driver.Driver):
+    """Linux Network Driver"""
+    def __init__(self):
+        driver.Driver.__init__(self)
+        self.name = "linux:cpu"
+
+    def fields(self):
+        pass
+
+    def tops(self):
+        """Linux process"""
+        all_cpus = []
+        cpus_time = psutil.cpu_times_percent(0, True)
+        for cpu_time in cpus_time:
+            cpu = {}
+            cpu["cpu"] = cpus_time.index(cpu_time)
+            cpu["user"] = cpu_time.user
+            cpu["nice"] = cpu_time.nice
+            cpu["system"] = cpu_time.system
+            cpu["idle"] = cpu_time.idle
+            cpu["iowait"] = cpu_time.iowait
+            cpu["irq"] = cpu_time.irq
+            cpu["softirq"] = cpu_time.softirq
+            cpu["steal"] = cpu_time.steal
+            cpu["guest"] = cpu_time.guest
+            cpu["guest_nice"] = cpu_time.guest_nice
+            all_cpus.append(cpu)
+        return all_cpus
 
     def info(self):
         pass
