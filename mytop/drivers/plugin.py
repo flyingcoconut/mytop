@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
-# Description : SQL process viewer
-#  
+# Description : Top Informations Viewer
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -13,7 +13,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -32,8 +32,7 @@ class PluginDriver(driver.Driver):
         driver.Driver.__init__(self)
         self.config.add("path", default=None, required=True, validator=None)
         self.config.add("config", default={}, required=False, validator=dict)
-        
+
     def initialize(self):
         #Do some magic
         pass
-   

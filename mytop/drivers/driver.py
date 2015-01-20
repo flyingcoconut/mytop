@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
-# Description : SQL process viewer
+# Description : Top Informations Viewer
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,14 +20,11 @@
 Base Class Driver
 """
 
+import logging
+
 class DriverError(Exception):
-    """
-    Driver error class
-    """
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
+    """Driver error class"""
+    pass
 
 class Config(object):
     """Config class"""
@@ -42,6 +39,7 @@ class DriverConfig(object):
     Driver config class
     """
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         self.configs = []
 
     def add(self, name, default=None, required=True, validator=None):
@@ -55,11 +53,11 @@ class DriverConfig(object):
                 if i.validator:
                     #Validate
                     try:
-                       value = i.validator(config[i.name])
+                        value = i.validator(config[i.name])
                     except:
-                       raise DriverError("Impossible to validate : " + str(key) + " value : " + str(config[key]))
+                        raise DriverError("Impossible to validate : " + str(key) + " value : " + str(config[key]))
                     else:
-                       setattr(self, i.name, value)
+                        setattr(self, i.name, value)
                 else:
                     setattr(self, i.name, value)
             else:
@@ -74,6 +72,7 @@ class Driver(object):
     Base class Driver
     """
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         self.config = DriverConfig()
 
     def tops(self):
