@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
-# Description : SQL process viewer
+# Description : Top Informations Viewer
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ import time
 import zlib
 import pickle
 import threading
+import logging
 
 
 class History(object):
@@ -57,6 +58,7 @@ class Session(threading.Thread):
     STATUS_ERROR = 4
     def __init__(self, driver, config, history=10):
         threading.Thread.__init__(self)
+        self.logger = logging.getLogger(__name__)
         self.daemon = True
         self.driver = driver
         self.config = config
@@ -68,20 +70,21 @@ class Session(threading.Thread):
 
     def run(self):
         """Start the session"""
+        self.logger.debug("Starting the session")
         self.status = self.STATUS_INITIALIZING
         try:
             self.driver.configure(self.config)
             self.driver.initialize()
         except Exception as error:
             self.status = self.STATUS_ERROR
-            self.last_error = error.value
+            self.last_error = str(error)
         self.status = self.STATUS_RUNNING
         while (self.status == self.STATUS_RUNNING):
             try:
                 self.history.add(self.driver.tops())
             except Exception as error:
                 self.status = self.STATUS_ERROR
-                self.last_error = error.value
+                self.last_error = str(error)
             time.sleep(self.delay)
 
     def stop(self):
@@ -115,37 +118,6 @@ class Session(threading.Thread):
     def additional(self):
         pass
 
-
-# class SessionsManager(object):
-#     """Sessions Manager"""
-#     def __init__(self):
-#         self.current = None
-#         self.sessions = []
-#         self.next_uid = 0
-#
-#     def remove(self):
-#         """Remove a session"""
-#         pass
-#
-#     def print_data(self, tops):
-#         print(tops)
-#
-#     def new(self, driver, config):
-#         """Create a new session"""
-#         session = Session(self.next_uid, driver, config)
-#         session.callback = self.print_data
-#         self.next_uid = self.next_uid + 1
-#         self.sessions.append(session)
-#         session.start()
-#
-#     def enable(self):
-#         pass
-#
-#     def disable(self):
-#         pass
-
-
-
 class ConfigError(Exception):
     """
     Config error class
@@ -155,68 +127,6 @@ class ConfigError(Exception):
         Exception.__init__(self, value)
     def __str__(self):
         return repr(self.value)
-
-
-class Config(object):
-    """
-    A class to read and write config
-    """
-
-    def __init__(self, path = None):
-        self._path = path
-        self._configs = {}
-        self._comments = {}
-
-    @property
-    def path(self):
-        """
-        Get config path
-        """
-        return self._path
-
-    @path.setter
-    def path(self, value):
-        """
-        Set config path
-        """
-        self._path = value
-
-    def get_config(self, config):
-        """
-        Get a config value
-        """
-        try:
-            return self._configs[config]
-        except KeyError:
-            return None
-
-    def set_config(self, config, value):
-        """
-        Set a config value
-        """
-        self._configs[config] = value
-
-    def write(self):
-        """
-        Write config to file
-        """
-        pass
-
-    def parse(self):
-        """
-        Parse the configuration file
-        """
-        self._configs = {}
-        config_file = open(self._path)
-        for line in config_file.readlines():
-            line = line.strip()
-            if line[0] == "#":
-                pass
-            else:
-                line = line.split("=")
-                self._configs[line[0].strip()] = line[1].strip()
-        config_file.close()
-
 
 default_config = {
     "drivers": {
@@ -651,13 +561,13 @@ default_config = {
                 },
                 "vhost": {
                     "position": 11,
-                    "length": 20,
+                    "length": 25,
                     "alignment": "left",
                     "title": "VHost"
                 },
                 "request": {
                     "position": 12,
-                    "length": 20,
+                    "length": 40,
                     "alignment": "left",
                     "title": "Request"
                 }

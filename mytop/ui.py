@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+##!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Author : Patrick Charron
 # Email : patrick.charron.pc@gmail.com
-# Description : Tops viewer
+# Description : Top Informations Viewer
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,13 +26,14 @@ import select
 import mytop
 from mytop import drivers
 
+
 class CursesUi(object):
     """The ui class"""
     def __init__(self):
         self.fullscreen = False
         self.sessions = []
         self.current_session = None
-        self.delay_counter = 1
+        self.delay_counter = 0
         self.cursor_pos = 0
         self.scr = None
         self.cursor_pos_x = 0
@@ -147,22 +148,22 @@ class CursesUi(object):
         help_text = """
      Keyboard shortcut
 
-     [a]dd          Add a new process manager
-     [c]olumn       Edit column display
-     [d]elay        Modify delay between refresh
-     [e]dit         Edit current connection
-     [f]ilter       Filter tops
-     [F]ullscreen   Display in fullscreen mode
-     [o]pen         Open a saved session or a record
-     [p]ause        Pause
-     [r]emove       Remove current connection
-     [R]ecord       Record a session
-     [s]ave         Save session
-     [w]rite        Write process to a csv file
-     [h]elp         Display this help
-     [H]istory      Toggle history mode
-     [q]uit         Quit
-     [:]            Command
+     a: Add a new process manager
+     c: Edit column display
+     d: Modify delay between refresh
+     e: Edit current connection
+     f: Filter tops
+     F: Display in fullscreen mode
+     o: Open a saved session or a record
+     p: Pause
+     r: Remove current connection
+     R: Record a session
+     s: Save session
+     w: Write process to a csv file
+     h: Display this help
+     H: Toggle history mode
+     q: Quit
+     :  Command
 
      Use up and down arrow to select process
         """
@@ -208,12 +209,10 @@ class CursesUi(object):
         informations.append("Sessions : " + index + "/" + str(len(self.sessions)))
         if self.current_session == None:
             informations.append("Driver : None")
-        else:
-            informations.append("Driver : " + self.current_session.driver.name)
-        if self.current_session == None:
             informations.append("Status : None")
             informations.append("History : None")
         else:
+            informations.append("Driver : " + self.current_session.driver.name)
             if self.current_session.status == mytop.Session.STATUS_STOPPED:
                 informations.append("Status : Stopped")
             elif self.current_session.status == mytop.Session.STATUS_INITIALIZING:
@@ -225,10 +224,13 @@ class CursesUi(object):
             elif self.current_session.status == mytop.Session.STATUS_ERROR:
                 informations.append("Status : Error")
             informations.append("History : " + str(len(self.current_session.history)))
+            if self.current_session.status == mytop.Session.STATUS_ERROR:
+                informations.append("Error : " + self.current_session.last_error)
         self.scr.addstr(max_y-1, 0, ", ".join(informations).ljust(max_x - 1)[:max_x-1], curses.A_BOLD | curses.A_REVERSE)
 
     def display_tops(self):
         """Display tops to screen"""
+        #{k:v for (k,v) in d.items() if filter_string in k} filtering
         (max_y, max_x) = self.scr.getmaxyx()
         if self.fullscreen:
             cnt = 1
@@ -236,6 +238,7 @@ class CursesUi(object):
         else:
             cnt = 6
             max_process = max_y - 6
+
         if self.current_session == None:
             self.scr.hline(cnt-1, 0, " ", max_x, curses.A_BOLD | curses.A_REVERSE)
             return
@@ -253,7 +256,8 @@ class CursesUi(object):
                 column[position] = "{: >" + str(length) + "." + str(length) + "}"
             elif alignment == "center":
                 column[position] = "{: ^" + str(length) + "." + str(length) + "}"
-        self.scr.addstr(cnt - 1 , 0, " ".join(column).format(*titles).ljust(max_x)[self.cursor_pos_x:max_x], curses.A_BOLD|curses.A_REVERSE) #Display title bar
+
+        self.scr.addstr(cnt - 1 , 0, " ".join(column).format(*titles).ljust(max_x)[self.cursor_pos_x:max_x + self.cursor_pos_x], curses.A_BOLD|curses.A_REVERSE) #Display title bar
         try:
             sortby = mytop.default_config["drivers"][self.current_session.driver.name]["sortby"]
             tops = sorted(self.current_session.history.last(), key=lambda k: k[sortby], reverse=True)
@@ -269,7 +273,7 @@ class CursesUi(object):
                 except KeyError:
                     informations[position] = ""
             informations = map(str, informations)
-            self.scr.addstr(cnt, 0, " ".join(column).format(*informations)[self.cursor_pos_x:max_x])
+            self.scr.addstr(cnt, 0, " ".join(column).format(*informations)[self.cursor_pos_x:max_x + self.cursor_pos_x])
             cnt += 1
 
     def handle_key(self, key):
@@ -338,6 +342,8 @@ class CursesUi(object):
                     self.current_session = None
             else:
                 self.current_session = self.sessions[index - 1]
+        else:
+            pass
 
     def start(self):
         """Wrappe function if bug happen and reset terminal properly"""
@@ -349,6 +355,7 @@ class CursesUi(object):
         sys.exit(0)
 
     def refresh(self):
+        """Refresh screen and all elements"""
         self.scr.erase()
         self.scr.nodelay(1)
         self.scr.keypad(1)
