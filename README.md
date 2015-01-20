@@ -1,6 +1,6 @@
 #mytop#
 
-mytop is a console-based tool for monitoring, watching, recording and managing top information from different sources.
+mytop is a console-based tool for monitoring, watching, recording and managing top informations from different sources.
 It runs on most Unix systems (including Mac OS X) which have python and curses.
 
 ![ScreenShot](https://raw.github.com/flyingcoconut/mytop/master/mytop.png)
@@ -45,7 +45,13 @@ Status : beta
 Dependency : PyMongo
 
 
-###linux###
+###linux:process###
+
+Status : beta
+
+Dependency : psutil
+
+###linux:cpu###
 
 Status : beta
 
