@@ -63,15 +63,7 @@ class MemcacheDriver(driver.Driver):
         return all_process
 
     def info(self):
-        info = {}
-        f = open("/proc/uptime")
-        proc_uptime = float(f.read().split()[0])
-        f.close()
-        info["uptime"] = str(datetime.timedelta(seconds = int(proc_uptime)))
-        info["swap"] = psutil.swap_memory()
-        info["load"] = psutil.os.getloadavg()
-        info["version"] = platform.release()
-        return info
+        pass
 
     def initialize(self):
         self._memcache = memcache.Client()

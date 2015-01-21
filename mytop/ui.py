@@ -23,7 +23,8 @@ import sys
 import os
 import select
 
-import mytop
+from mytop import session
+from mytop import config
 from mytop import drivers
 
 
@@ -55,39 +56,22 @@ class CursesUi(object):
         path = self.ask("Write to : ")
         if os.path.exists(path) & os.path.isfile(path):
             resp = self.ask('File exist. Do you want to overwrite ? [y/N]')
-            if resp == ord("y"):
-                try :
-                    output_file = open(path, "w")
-                    output_file.write("Id;User;Host;Db;State;Time;Info\n")
-                    for process in self.current_session.history.last():
-                        line = str(process.pid) + ";" + process.user + ";" + process.host + ";" + process.db + ";" + process.state + ";" + str(process.time) + ";" + process.info
-                        output_file.write(line + "\n")
-                    output_file.close()
-                except IOError:
-                    self.error('Impossible to write file')
-        else:
-            try :
-                output_file = open(path, "w")
-                output_file.write("Id;User;Host;Db;State;Time;Info\n")
-                for process in self.current_session.history.last():
-                    line = str(process.pid) + ";" + process.user + ";" + process.host + ";" + process.db + ";" + process.state + ";" + str(process.time) + ";" + process.info
-                    output_file.write(line + "\n")
-                output_file.close()
-            except IOError:
-                self.error('Impossible to write file')
+            if resp != "y":
+                return
+        self.error("Need to be done")
 
     def edit_delay(self):
         if self.current_session == None:
             self.error("No current session")
-            return
-        value = self.ask('Specify delay in second : ')
-        try:
-            delay = int(value)
-        except ValueError:
-            self.error('Bad delay value')
         else:
-            self.delay_counter = 0
-            self.current_session.delay = delay
+            value = self.ask('Specify delay in second : ')
+            try:
+                delay = int(value)
+            except ValueError:
+                self.error('Bad delay value')
+            else:
+                self.delay_counter = 0
+                self.current_session.delay = delay
 
     def command(self):
         command = self.ask("command : ")
@@ -100,7 +84,7 @@ class CursesUi(object):
         if self.fullscreen:
             ques_pos = max_y - 1
         else:
-            ques_pos = 3
+            ques_pos = 4
         self.scr.nodelay(0)
         curses.echo()
         curses.curs_set(1)
@@ -116,7 +100,7 @@ class CursesUi(object):
         if self.fullscreen:
             ques_pos = max_y - 1
         else:
-            ques_pos = 3
+            ques_pos = 4
         curses.echo()
         self.scr.move(ques_pos, 0)
         self.scr.clrtoeol()
@@ -128,20 +112,20 @@ class CursesUi(object):
         """Add session"""
         value = self.ask("driver : ")
         try:
-            drivers.load(value)
+            driver = drivers.load(value)
         except ValueError:
             self.error("driver is not valid : " + value)
-        except ImportError as e:
-            self.error(str(e))
+        except ImportError as error:
+            self.error(str(error))
         else:
             configs = {}
             for conf in driver.config.configs:
                 value = self.ask(conf.name + " : ")
                 configs[conf.name] = value
-            session = mytop.Session(driver, configs, self.refresh)
-            session.start()
-            self.sessions.append(session)
-            self.current_session = session
+            new_session = session.Session(driver, configs)
+            new_session.start()
+            self.sessions.append(new_session)
+            self.current_session = new_session
 
     def display_help(self):
         """Display help"""
@@ -176,10 +160,6 @@ class CursesUi(object):
         self.scr.refresh()
         self.scr.getch()
 
-    def display_history(self, key):
-        """Toogle history mode"""
-        pass
-
     def edit_session(self):
         """Edit a session"""
         pass
@@ -193,13 +173,7 @@ class CursesUi(object):
         pass
 
     def display_footer(self):
-        """
-        Display footer informations
-         - Sessions numbering
-         - Driver name
-         - Status (Paused)
-         - etc
-        """
+        """Display footer informations"""
         (max_y, max_x) = self.scr.getmaxyx()
         if self.current_session == None:
             index = "0"
@@ -213,18 +187,18 @@ class CursesUi(object):
             informations.append("History : None")
         else:
             informations.append("Driver : " + self.current_session.driver.name)
-            if self.current_session.status == mytop.Session.STATUS_STOPPED:
+            if self.current_session.status == session.Session.STATUS_STOPPED:
                 informations.append("Status : Stopped")
-            elif self.current_session.status == mytop.Session.STATUS_INITIALIZING:
+            elif self.current_session.status == session.Session.STATUS_INITIALIZING:
                 informations.append("Status : Initializing")
-            elif self.current_session.status == mytop.Session.STATUS_RUNNING:
+            elif self.current_session.status == session.Session.STATUS_RUNNING:
                 informations.append("Status : Running")
-            elif self.current_session.status == mytop.Session.STATUS_PAUSED:
+            elif self.current_session.status == session.Session.STATUS_PAUSED:
                 informations.append("Status : Paused")
-            elif self.current_session.status == mytop.Session.STATUS_ERROR:
+            elif self.current_session.status == session.Session.STATUS_ERROR:
                 informations.append("Status : Error")
             informations.append("History : " + str(len(self.current_session.history)))
-            if self.current_session.status == mytop.Session.STATUS_ERROR:
+            if self.current_session.status == session.Session.STATUS_ERROR:
                 informations.append("Error : " + self.current_session.last_error)
         self.scr.addstr(max_y-1, 0, ", ".join(informations).ljust(max_x - 1)[:max_x-1], curses.A_BOLD | curses.A_REVERSE)
 
@@ -243,13 +217,13 @@ class CursesUi(object):
             self.scr.hline(cnt-1, 0, " ", max_x, curses.A_BOLD | curses.A_REVERSE)
             return
 
-        column = [None] * len(mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys())
-        titles = [None] * len(mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys())
-        for key in mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys():
-            position = mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["position"]
-            length = mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["length"]
-            alignment = mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["alignment"]
-            titles[position] = (mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["title"])
+        column = [None] * len(config.default_config["drivers"][self.current_session.driver.name]["process"].keys())
+        titles = [None] * len(config.default_config["drivers"][self.current_session.driver.name]["process"].keys())
+        for key in config.default_config["drivers"][self.current_session.driver.name]["process"].keys():
+            position = config.default_config["drivers"][self.current_session.driver.name]["process"][key]["position"]
+            length = config.default_config["drivers"][self.current_session.driver.name]["process"][key]["length"]
+            alignment = config.default_config["drivers"][self.current_session.driver.name]["process"][key]["alignment"]
+            titles[position] = (config.default_config["drivers"][self.current_session.driver.name]["process"][key]["title"])
             if alignment == "left":
                 column[position] = "{: <" + str(length) + "." + str(length) + "}"
             elif alignment == "right":
@@ -259,15 +233,15 @@ class CursesUi(object):
 
         self.scr.addstr(cnt - 1 , 0, " ".join(column).format(*titles).ljust(max_x)[self.cursor_pos_x:max_x + self.cursor_pos_x], curses.A_BOLD|curses.A_REVERSE) #Display title bar
         try:
-            sortby = mytop.default_config["drivers"][self.current_session.driver.name]["sortby"]
+            sortby = config.default_config["drivers"][self.current_session.driver.name]["sortby"]
             tops = sorted(self.current_session.history.last(), key=lambda k: k[sortby], reverse=True)
         except KeyError:
             tops = self.current_session.history.last()
         for i in tops[self.cursor_pos:max_process + self.cursor_pos - 1]:
-            informations = [None] * len(mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys())
-            for key in mytop.default_config["drivers"][self.current_session.driver.name]["process"].keys():
-                position = mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["position"]
-                length = mytop.default_config["drivers"][self.current_session.driver.name]["process"][key]["length"]
+            informations = [None] * len(config.default_config["drivers"][self.current_session.driver.name]["process"].keys())
+            for key in config.default_config["drivers"][self.current_session.driver.name]["process"].keys():
+                position = config.default_config["drivers"][self.current_session.driver.name]["process"][key]["position"]
+                length = config.default_config["drivers"][self.current_session.driver.name]["process"][key]["length"]
                 try:
                     informations[position] = i[key]
                 except KeyError:
@@ -346,12 +320,12 @@ class CursesUi(object):
             pass
 
     def start(self):
-        """Wrappe function if bug happen and reset terminal properly"""
+        """Wrappe function if bug happen, then reset terminal properly"""
         curses.wrapper(self.start_ui)
 
     def quit(self):
-        for session in self.sessions:
-            session.stop()
+        for s in self.sessions:
+            s.stop()
         sys.exit(0)
 
     def refresh(self):

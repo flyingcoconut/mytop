@@ -22,7 +22,7 @@ Plugin Driver
 Load an external driver
 Usefull for non official driver
 """
-import driver
+from . import driver
 
 class PluginDriver(driver.Driver):
     """

@@ -35,6 +35,7 @@ def main():
     parser = argparse.ArgumentParser(description='Top Informations Viewer')
     parser.add_argument("-f", action="store_true", default=False, help="Diplay fullscreen")
     parser.add_argument("--nocolor", action="store_true", default=False, help="Use monochrome color")
+    parser.add_argument("--debug", action="store_true", default=False, help="Use monochrome color")
     parser.parse_args()
     #logging.basicConfig(level=logging.DEBUG)
     interface.start()

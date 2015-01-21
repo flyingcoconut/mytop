@@ -48,7 +48,8 @@ class ApacheDriver(driver.Driver):
 
     def tops(self):
         """
-        Refresh sql information. Including uptime and the list of running process
+        Refresh sql information.
+        Including uptime and the list of running process
         """
         status_page = urllib2.urlopen(self.config.url)
         soup = BeautifulSoup(status_page.read())

@@ -63,15 +63,7 @@ class LinuxProcessDriver(driver.Driver):
         return all_process
 
     def info(self):
-        info = {}
-        f = open("/proc/uptime")
-        proc_uptime = float(f.read().split()[0])
-        f.close()
-        info["uptime"] = str(datetime.timedelta(seconds = int(proc_uptime)))
-        info["swap"] = psutil.swap_memory()
-        info["load"] = psutil.os.getloadavg()
-        info["version"] = platform.release()
-        return info
+        pass
 
     def kill(self, process, signal):
         process = psutil.Process(process.pid)
@@ -206,15 +198,15 @@ class LinuxSocketDriver(driver.Driver):
         except KeyError:
             return family
 
-    def _get_type(self, type):
-        types = {
+    def _get_type(self, stype):
+        stypes = {
             1 : "STREAM",
             2 : "DGRAM"
         }
         try:
-            return types[type]
+            return stypes[stype]
         except KeyError:
-            return type
+            return stype
 
     def info(self):
         pass
@@ -232,19 +224,19 @@ class LinuxCpuDriver(driver.Driver):
         """Linux process"""
         all_cpus = []
         cpus_time = psutil.cpu_times_percent(0, True)
-        for cpu_time in cpus_time:
+        for cpu_time in enumerate(cpus_time):
             cpu = {}
-            cpu["cpu"] = cpus_time.index(cpu_time)
-            cpu["user"] = cpu_time.user
-            cpu["nice"] = cpu_time.nice
-            cpu["system"] = cpu_time.system
-            cpu["idle"] = cpu_time.idle
-            cpu["iowait"] = cpu_time.iowait
-            cpu["irq"] = cpu_time.irq
-            cpu["softirq"] = cpu_time.softirq
-            cpu["steal"] = cpu_time.steal
-            cpu["guest"] = cpu_time.guest
-            cpu["guest_nice"] = cpu_time.guest_nice
+            cpu["cpu"] = cpu_time[0]
+            cpu["user"] = cpu_time[1].user
+            cpu["nice"] = cpu_time[1].nice
+            cpu["system"] = cpu_time[1].system
+            cpu["idle"] = cpu_time[1].idle
+            cpu["iowait"] = cpu_time[1].iowait
+            cpu["irq"] = cpu_time[1].irq
+            cpu["softirq"] = cpu_time[1].softirq
+            cpu["steal"] = cpu_time[1].steal
+            cpu["guest"] = cpu_time[1].guest
+            cpu["guest_nice"] = cpu_time[1].guest_nice
             all_cpus.append(cpu)
         return all_cpus
 

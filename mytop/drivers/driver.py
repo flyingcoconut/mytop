@@ -43,6 +43,7 @@ class DriverConfig(object):
         self.configs = []
 
     def add(self, name, default=None, required=True, validator=None):
+        """Add a config entry"""
         conf = Config(name, default, required, validator)
         self.configs.append(conf)
 
