@@ -38,9 +38,12 @@ def load(driver):
     try:
         module_name = __drivers__[driver][0]
         driver_name = __drivers__[driver][1]
-    except IndexError:
-        print("ohoho")
+    except KeyError:
+        raise ValueError("Driver : " + str(driver) + " : is not valid")
 
-    module = importlib.import_module("." + module_name, "mytop.drivers")
-    driver = getattr(module, driver_name)
+    try:
+        module = importlib.import_module("." + module_name, "mytop.drivers")
+        driver = getattr(module, driver_name)
+    except Exception as e:
+        raise ImportError("Impossible to load : " + str(driver) + " : " + str(e))
     return driver()

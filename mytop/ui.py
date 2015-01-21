@@ -127,21 +127,21 @@ class CursesUi(object):
     def add_session(self):
         """Add session"""
         value = self.ask("driver : ")
-        if value != "":
-            if value in drivers.list_drivers():
-                driver = drivers.load(value)
-            else:
-                self.error("driver is not valid : " + value)
-                return
-        configs = {}
-        for conf in driver.config.configs:
-            value = self.ask(conf.name + " : ")
-            configs[conf.name] = value
-        session = mytop.Session(driver, configs, self.refresh)
-        session.start()
-        self.sessions.append(session)
-        self.current_session = session
-
+        try:
+            drivers.load(value)
+        except ValueError:
+            self.error("driver is not valid : " + value)
+        except ImportError as e:
+            self.error(str(e))
+        else:
+            configs = {}
+            for conf in driver.config.configs:
+                value = self.ask(conf.name + " : ")
+                configs[conf.name] = value
+            session = mytop.Session(driver, configs, self.refresh)
+            session.start()
+            self.sessions.append(session)
+            self.current_session = session
 
     def display_help(self):
         """Display help"""
