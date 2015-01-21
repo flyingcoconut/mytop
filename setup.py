@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='mytop',
-      version='0.1',
+      version='0.0.1',
       description='mytop',
       long_description=readme(),
       classifiers=[
