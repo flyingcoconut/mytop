@@ -23,7 +23,6 @@ import logging
 
 from mytop import ui
 
-VERSION = "0.1"
 interface = ui.CursesUi()
 def signal_handler(sig, frame):
     """Get signals and exit"""
