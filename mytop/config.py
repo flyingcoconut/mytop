@@ -569,17 +569,20 @@ default_config = {
 
 
 class Config(object):
-    def __init__(self, user):
+    def __init__(self):
         self.system = default_config
-        self.user = user
+        self.user = {}
 
     def update(self, config):
         """Update user config"""
-        pass
+        self.user = config
 
     def config(self):
-        """Return merged config"""
-        pass
+        """Returnwhere merged config"""
+        merged = {}
+        merged.update(self.system)
+        merged.update(self.user)
+        return merged
 
     def dumps(self):
         """Dumps user generated config"""
