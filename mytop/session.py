@@ -26,6 +26,12 @@ import pickle
 import threading
 import logging
 
+STATUS_STOPPED = 0
+STATUS_INITIALIZING = 1
+STATUS_RUNNING = 2
+STATUS_PAUSED = 3
+STATUS_ERROR = 4
+
 class SessionError(Exception):
     """Session error class"""
     pass
@@ -61,11 +67,6 @@ class History(object):
         return len(self._items)
 
 class Session(threading.Thread):
-    STATUS_STOPPED = 0
-    STATUS_INITIALIZING = 1
-    STATUS_RUNNING = 2
-    STATUS_PAUSED = 3
-    STATUS_ERROR = 4
     def __init__(self, driver, config, history=10):
         threading.Thread.__init__(self)
         self.logger = logging.getLogger(__name__)
@@ -75,36 +76,36 @@ class Session(threading.Thread):
         self.filters = []
         self.history = History(history)
         self.delay = 3
-        self.status = self.STATUS_STOPPED
+        self.status = STATUS_STOPPED
         self.last_error = None
 
     def run(self):
         """Start the session"""
         self.logger.debug("Starting the session")
-        self.status = self.STATUS_INITIALIZING
+        self.status = STATUS_INITIALIZING
         try:
             self.driver.configure(self.config)
             self.driver.initialize()
         except Exception as error:
-            self.status = self.STATUS_ERROR
+            self.status = STATUS_ERROR
             self.last_error = str(error)
-        self.status = self.STATUS_RUNNING
-        while (self.status == self.STATUS_RUNNING):
+        self.status = STATUS_RUNNING
+        while (self.status == STATUS_RUNNING):
             try:
                 self.history.add(self.driver.tops())
             except Exception as error:
-                self.status = self.STATUS_ERROR
+                self.status = STATUS_ERROR
                 self.last_error = str(error)
             time.sleep(self.delay)
 
     def stop(self):
         """Stop the session"""
-        self.status = self.STATUS_STOPPED
+        self.status = STATUS_STOPPED
         self.driver.terminate()
 
     def pause(self):
         """Pause the session"""
-        self.status = self.STATUS_PAUSED
+        self.status = STATUS_PAUSED
 
     def record(self):
         """Record a session"""

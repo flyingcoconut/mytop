@@ -191,23 +191,28 @@ class CursesUi(object):
             informations.append("History : None")
         else:
             index = str(self.sessions.index + 1)
-            informations.append("Sessions : " + index + "/" \
+            informations.append("Sessions : " + index + "/"
                                 + str(len(self.sessions)))
-            informations.append("Driver : " + self.sessions.current.driver.name)
-            if self.sessions.current.status == session.Session.STATUS_STOPPED:
+            informations.append("Driver : " +
+                                self.sessions.current.driver.name)
+            if self.sessions.current.status == session.STATUS_STOPPED:
                 informations.append("Status : Stopped")
-            elif self.sessions.current.status ==  session.Session.STATUS_INITIALIZING:
+            elif self.sessions.current.status ==  session.STATUS_INITIALIZING:
                 informations.append("Status : Initializing")
-            elif self.sessions.current.status == session.Session.STATUS_RUNNING:
+            elif self.sessions.current.status == session.STATUS_RUNNING:
                 informations.append("Status : Running")
-            elif self.sessions.current.status == session.Session.STATUS_PAUSED:
+            elif self.sessions.current.status == session.STATUS_PAUSED:
                 informations.append("Status : Paused")
-            elif self.sessions.current.status == session.Session.STATUS_ERROR:
+            elif self.sessions.current.status == session.STATUS_ERROR:
                 informations.append("Status : Error")
-            informations.append("History : " + str(len(self.sessions.current.history)))
-            if self.sessions.current.status == session.Session.STATUS_ERROR:
-                informations.append("Error : " + self.sessions.current.last_error)
-        self.scr.addstr(self.max_y-1, 0, ", ".join(informations).ljust(self.max_x - 1)[:self.max_x-1], curses.A_BOLD | curses.A_REVERSE)
+            informations.append("History : " +
+                                str(len(self.sessions.current.history)))
+            if self.sessions.current.status == session.STATUS_ERROR:
+                informations.append("Error : " +
+                                    self.sessions.current.last_error)
+        self.scr.addstr(self.max_y-1, 0,
+                        ", ".join(informations).ljust(self.max_x - 1)[:self.max_x-1],
+                        curses.A_BOLD | curses.A_REVERSE)
 
     def display_tops(self):
         """Display tops to screen"""
@@ -220,7 +225,8 @@ class CursesUi(object):
             max_process = self.max_y - 6
 
         if self.sessions.current is None:
-            self.scr.hline(cnt-1, 0, " ", self.max_x, curses.A_BOLD | curses.A_REVERSE)
+            self.scr.hline(cnt-1, 0, " ",
+                           self.max_x, curses.A_BOLD | curses.A_REVERSE)
             return
 
         column = [None] * len(config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"].keys())
@@ -240,7 +246,8 @@ class CursesUi(object):
         self.scr.addstr(cnt - 1 , 0, " ".join(column).format(*titles).ljust(self.max_x)[self.cursor_pos_x:self.max_x + self.cursor_pos_x], curses.A_BOLD|curses.A_REVERSE) #Display title bar
         try:
             sortby = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["sortby"]
-            tops = sorted(self.sessions.current.history.last(), key=lambda k: k[sortby], reverse=True)
+            tops = sorted(self.sessions.current.history.last(),
+                          key=lambda k: k[sortby], reverse=True)
         except KeyError:
             tops = self.sessions.current.history.last()
         for i in tops[self.cursor_pos:max_process + self.cursor_pos - 1]:
@@ -281,7 +288,8 @@ class CursesUi(object):
                 self.fullscreen = False
             else:
                 self.fullscreen = True
-        elif key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"), ord("6"), ord("7"), ord("8"), ord("9")]:
+        elif key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"),
+                     ord("6"), ord("7"), ord("8"), ord("9")]:
             #All keyboard key number are used to select wich connection to display
             index = int(chr(key))
             self.switch_session(index)
