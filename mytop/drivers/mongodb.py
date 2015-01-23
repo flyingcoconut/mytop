@@ -19,8 +19,6 @@
 """
 MongoDB Driver
 """
-import datetime
-
 import driver
 import pymongo
 
@@ -62,19 +60,8 @@ class MongoDBDriver(driver.Driver):
                     state = "C"
                 p = process.Process(row["opid"], "", row[u"client"].split(':')[0], row[u"ns"].split(".")[0], state, time, str(row[u"query"]))
                 all_process.append(p)
-        except all as e:
-            print(e)
-            pass
-        if len(self._history) > self._max_history:
-            self._history.pop(0)
-            self._history.append(self._process)
-        else:
-            self._history.append(self._process)
-        self._process = all_process
-
-        mongodb_stats = self._sql.admin.command('serverStatus', 1)
-        self._uptime = str(datetime.timedelta(seconds = mongodb_stats["uptime"]))
-        self._version = mongodb_stats["version"]
+        except Exception as error:
+            raise driver.DriverError(error)
 
     def initialize(self):
         """Connect to the MongoDB server"""
@@ -83,11 +70,3 @@ class MongoDBDriver(driver.Driver):
         except MySQLdb.OperationalError as e:
             raise driver.DriverError("Impossible to connect to the database serveur")
         self._sql = db
-
-    def configure(self, conf):
-        self.config = conf
-        try:
-            self._host = self.config["host"]
-            self._port = self.config["port"]
-        except:
-            raise driver.DriverError("Bad config")
