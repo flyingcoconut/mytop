@@ -67,11 +67,10 @@ class CursesUi(object):
             value = self.ask('Specify delay in second : ')
             try:
                 delay = int(value)
-            except ValueError:
-                self.error('Bad delay value')
-            else:
                 self.delay_counter = 0
                 self.current_session.delay = delay
+            except ValueError:
+                self.error('Bad delay value')
 
     def command(self):
         command = self.ask("command : ")
@@ -175,17 +174,15 @@ class CursesUi(object):
     def display_footer(self):
         """Display footer informations"""
         (max_y, max_x) = self.scr.getmaxyx()
-        if self.current_session == None:
-            index = "0"
-        else:
-            index  = str(self.sessions.index(self.current_session) + 1)
         informations = []
-        informations.append("Sessions : " + index + "/" + str(len(self.sessions)))
         if self.current_session == None:
+            informations.append("Sessions : 0/" + str(len(self.sessions)))
             informations.append("Driver : None")
             informations.append("Status : None")
             informations.append("History : None")
         else:
+            index  = str(self.sessions.index(self.current_session) + 1)
+            informations.append("Sessions : " + index + "/" + str(len(self.sessions)))
             informations.append("Driver : " + self.current_session.driver.name)
             if self.current_session.status == session.Session.STATUS_STOPPED:
                 informations.append("Status : Stopped")
@@ -217,13 +214,13 @@ class CursesUi(object):
             self.scr.hline(cnt-1, 0, " ", max_x, curses.A_BOLD | curses.A_REVERSE)
             return
 
-        column = [None] * len(config.default_config["drivers"][self.current_session.driver.name]["process"].keys())
-        titles = [None] * len(config.default_config["drivers"][self.current_session.driver.name]["process"].keys())
-        for key in config.default_config["drivers"][self.current_session.driver.name]["process"].keys():
-            position = config.default_config["drivers"][self.current_session.driver.name]["process"][key]["position"]
-            length = config.default_config["drivers"][self.current_session.driver.name]["process"][key]["length"]
-            alignment = config.default_config["drivers"][self.current_session.driver.name]["process"][key]["alignment"]
-            titles[position] = (config.default_config["drivers"][self.current_session.driver.name]["process"][key]["title"])
+        column = [None] * len(config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["process"].keys())
+        titles = [None] * len(config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["process"].keys())
+        for key in config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["process"].keys():
+            position = config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["process"][key]["position"]
+            length = config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["process"][key]["length"]
+            alignment = config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["process"][key]["alignment"]
+            titles[position] = (config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["process"][key]["title"])
             if alignment == "left":
                 column[position] = "{: <" + str(length) + "." + str(length) + "}"
             elif alignment == "right":
@@ -233,15 +230,15 @@ class CursesUi(object):
 
         self.scr.addstr(cnt - 1 , 0, " ".join(column).format(*titles).ljust(max_x)[self.cursor_pos_x:max_x + self.cursor_pos_x], curses.A_BOLD|curses.A_REVERSE) #Display title bar
         try:
-            sortby = config.default_config["drivers"][self.current_session.driver.name]["sortby"]
+            sortby = config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["sortby"]
             tops = sorted(self.current_session.history.last(), key=lambda k: k[sortby], reverse=True)
         except KeyError:
             tops = self.current_session.history.last()
         for i in tops[self.cursor_pos:max_process + self.cursor_pos - 1]:
-            informations = [None] * len(config.default_config["drivers"][self.current_session.driver.name]["process"].keys())
-            for key in config.default_config["drivers"][self.current_session.driver.name]["process"].keys():
-                position = config.default_config["drivers"][self.current_session.driver.name]["process"][key]["position"]
-                length = config.default_config["drivers"][self.current_session.driver.name]["process"][key]["length"]
+            informations = [None] * len(config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["process"].keys())
+            for key in config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["process"].keys():
+                position = config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["process"][key]["position"]
+                length = config.DEFAULT_CONFIG["drivers"][self.current_session.driver.name]["process"][key]["length"]
                 try:
                     informations[position] = i[key]
                 except KeyError:
@@ -250,7 +247,23 @@ class CursesUi(object):
             self.scr.addstr(cnt, 0, " ".join(column).format(*informations)[self.cursor_pos_x:max_x + self.cursor_pos_x])
             cnt += 1
 
-    def handle_key(self, key):
+    def remove_session(self):
+        if self.current_session == None:
+            self.error("No current session")
+        else:
+            index = self.sessions.index(self.current_session)
+            self.current_session.stop()
+            self.sessions.remove(self.current_session)
+            if index > len(self.sessions) - 1:
+                try:
+                    self.current_session = self.sessions[-1]
+                except IndexError:
+                    self.current_session = None
+            else:
+                self.current_session = self.sessions[index - 1]
+
+    def handle_key(self):
+        key = self.scr.getch()
         if key == ord("a"):
             self.add_session()
         elif key == ord(":"):
@@ -258,10 +271,8 @@ class CursesUi(object):
         elif key == ord("F"):
             if self.fullscreen:
                 self.fullscreen = False
-                curses.curs_set(1)
             else:
                 self.fullscreen = True
-                curses.curs_set(0)
         elif key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"), ord("6"), ord("7"), ord("8"), ord("9")]:
             #All keyboard key number are used to select wich connection to display
             index = int(chr(key)) - 1
@@ -288,7 +299,6 @@ class CursesUi(object):
         elif key == ord("f"):
             #key to edit or add filter
             self.edit_filter()
-
         elif key == ord("w"):
             #Key to write results to a file
             self.write_to_file()
@@ -303,19 +313,9 @@ class CursesUi(object):
                 self.error("No current session")
             else:
                 self.current_session.pause()
-
         elif key == ord("r"):
             #Remove a session
-            index = self.sessions.index(self.current_session)
-            self.current_session.stop()
-            self.sessions.remove(self.current_session)
-            if index > len(self.sessions) - 1:
-                try:
-                    self.current_session = self.sessions[-1]
-                except IndexError:
-                    self.current_session = None
-            else:
-                self.current_session = self.sessions[index - 1]
+            self.remove_session()
         else:
             pass
 
@@ -362,6 +362,5 @@ class CursesUi(object):
                 select.select([sys.stdin], [], [], delay) #Wait for input
             except select.error:
                 pass
-            key = self.scr.getch()
-            self.handle_key(key)
+            self.handle_key()
             self.refresh()

@@ -16,8 +16,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+Configuration module
+"""
 
-default_config = {
+DEFAULT_CONFIG = {
     "drivers": {
         "mysql": {
             "process": {
@@ -570,7 +573,8 @@ default_config = {
 
 class Config(object):
     def __init__(self):
-        self.system = default_config
+        """Config class"""
+        self.system = DEFAULT_CONFIG
         self.user = {}
 
     def update(self, config):
@@ -586,4 +590,4 @@ class Config(object):
 
     def dumps(self):
         """Dumps user generated config"""
-        pass
+        return self.user

@@ -45,31 +45,33 @@ class LinuxProcessDriver(driver.Driver):
     def tops(self):
         """Linux process"""
         all_process = []
-        for pr in psutil.process_iter():
-            p = {}
-            p["pid"] = pr.pid
-            p["user"] = pr.username()
-            p["nice"] = pr.nice()
-            memory = pr.get_ext_memory_info()
-            p["rss"] = memory[0]
-            p["vms"] = memory[1]
-            p["shared"] = memory[2]
-            p["state"] = pr.status()
-            p["cpu"] = pr.get_cpu_percent(0)
-            p["memory"] = pr.get_memory_percent()
-            p["time"] = pr.create_time()
-            p["command"] = pr.name()
-            all_process.append(p)
+        for item in psutil.process_iter():
+            process = {}
+            process["pid"] = item.pid
+            process["user"] = item.username()
+            process["nice"] = item.nice()
+            memory = item.get_ext_memory_info()
+            process["rss"] = memory[0]
+            process["vms"] = memory[1]
+            process["shared"] = memory[2]
+            process["state"] = item.status()
+            process["cpu"] = item.get_cpu_percent(0)
+            process["memory"] = item.get_memory_percent()
+            process["time"] = item.create_time()
+            process["command"] = item.name()
+            all_process.append(process)
         return all_process
 
     def info(self):
         pass
 
     def kill(self, process, signal):
+        """Kill a process"""
         process = psutil.Process(process.pid)
         process.send_signal(signal)
 
     def renice(self, process, nice):
+        """Renice a process"""
         process = psutil.Process(process.pid)
         process.set_nice(nice)
 

@@ -64,17 +64,17 @@ class MySQLDriver(driver.Driver):
                     query = "None"
                 else:
                     query = row[7].replace('\n', ' ')
-                p = {}
-                p["pid"] = row[0]
-                p["user"] = row[1]
-                p["host"] = row[2].split(':')[0]
-                p["db"] = db_name
-                p["state"] = row[4]
-                p["time"] = row[5]
-                p["info"] = query
-                all_process.append(p)
-        except all as e:
-            raise driver.DriverError(e)
+                process = {}
+                process["pid"] = row[0]
+                process["user"] = row[1]
+                process["host"] = row[2].split(':')[0]
+                process["db"] = db_name
+                process["state"] = row[4]
+                process["time"] = row[5]
+                process["info"] = query
+                all_process.append(process)
+        except all as error:
+            raise driver.DriverError(error)
         return all_process
 
     def info(self):
@@ -92,12 +92,12 @@ class MySQLDriver(driver.Driver):
     def initialize(self):
         """Initialize the driver"""
         try:
-            db = MySQLdb.connect(host=self.config.host, user=self.config.user, passwd=self.config.password, port=self.config.port)
-        except MySQLdb.OperationalError as e:
+            db_connection = MySQLdb.connect(host=self.config.host, user=self.config.user, passwd=self.config.password, port=self.config.port)
+        except MySQLdb.OperationalError:
             raise driver.DriverError("Impossible to connect to the database serveur")
         else:
             #Create mysql object
-            self._sql = db.cursor()
+            self._sql = db_connection.cursor()
 
     def terminate(self):
         """Terminate connection"""
