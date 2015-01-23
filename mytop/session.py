@@ -27,11 +27,11 @@ import threading
 import logging
 
 class SessionError(Exception):
-    """Driver error class"""
+    """Session error class"""
     pass
 
 class SessionsManagerError(Exception):
-    """Driver error class"""
+    """SessionsManager error class"""
     pass
 
 class History(object):
@@ -106,27 +106,24 @@ class Session(threading.Thread):
         """Pause the session"""
         self.status = self.STATUS_PAUSED
 
-    def resume(self):
-        """Resume the session"""
-        pass
-
     def record(self):
         """Record a session"""
         pass
 
     def tops(self):
+        """Get tops items"""
         items = self.driver.tops()
         #self.history.add(items)
         return items
 
     def fields(self):
+        """Return all disponible fields"""
         return self.driver.fields()
 
     def info(self):
+        """Return all infos"""
         return self.driver.info()
 
-    def additional(self):
-        pass
 
 class SessionsManager(object):
     """Manage sessions"""
@@ -136,12 +133,14 @@ class SessionsManager(object):
         self.current = None
 
     def add(self, driver, configs):
+        """Add a new session"""
         new_session = Session(driver, configs)
         new_session.start()
         self.sessions.append(new_session)
         return self.sessions.index(new_session)
 
     def remove(self):
+        """Remove the current session"""
         if self.current is None:
             raise SessionsManagerError("Session does not exist")
         else:
@@ -157,79 +156,24 @@ class SessionsManager(object):
                 self.current = self.sessions[index - 1]
 
     def switch(self, index):
+        """Switch current session"""
         try:
             self.current = self.sessions[index]
         except IndexError:
             raise SessionsManagerError("Session %d does not exist" % index)
 
     def stop(self):
-        """Stop the session"""
-        pass
-
-    def pause(self):
-        """Pause the session"""
-        pass
-
-    def resume(self):
-        """Resume the session"""
-        pass
-
-    def record(self):
-        """Record a session"""
-        pass
-
-    def tops(self):
-        pass
-
-    def fields(self):
-        pass
-
-    def info(self):
-        pass
-
-    def additional(self):
-        pass
+        """Stop all sessions"""
+        for session in self.sessions:
+            session.stop()
 
     @property
     def index(self):
+        """Return current session index"""
         if self.current is None:
             return None
         else:
             return self.sessions.index(self.current)
-    @property
-    def delay(self):
-        if self.current is None:
-            return None
-        else:
-            return self.current.delay
-
-    @property
-    def driver(self):
-        if self.current is None:
-            return None
-        else:
-            return self.current.driver
-
-    @property
-    def last_error(self):
-        if self.current is None:
-            return None
-        else:
-            return self.current.last_error
-
-    @property
-    def status(self):
-        if self.current is None:
-            return None
-        else:
-            return self.current.status
-
-    @property
-    def history(self):
-        if self.current is None:
-            return None
-        else:
-            return self.current.history
 
     def __iter__(self):
         """Iterate sessions"""

@@ -81,7 +81,7 @@ class CursesUi(object):
             try:
                 delay = int(value)
                 self.delay_counter = 0
-                self.sessions.delay = delay
+                self.sessions.current.delay = delay
             except ValueError:
                 self.error('Bad delay value')
 
@@ -193,20 +193,20 @@ class CursesUi(object):
             index = str(self.sessions.index + 1)
             informations.append("Sessions : " + index + "/" \
                                 + str(len(self.sessions)))
-            informations.append("Driver : " + self.sessions.driver.name)
-            if self.sessions.status == session.Session.STATUS_STOPPED:
+            informations.append("Driver : " + self.sessions.current.driver.name)
+            if self.sessions.current.status == session.Session.STATUS_STOPPED:
                 informations.append("Status : Stopped")
-            elif self.sessions.status ==  session.Session.STATUS_INITIALIZING:
+            elif self.sessions.current.status ==  session.Session.STATUS_INITIALIZING:
                 informations.append("Status : Initializing")
-            elif self.sessions.status == session.Session.STATUS_RUNNING:
+            elif self.sessions.current.status == session.Session.STATUS_RUNNING:
                 informations.append("Status : Running")
-            elif self.sessions.status == session.Session.STATUS_PAUSED:
+            elif self.sessions.current.status == session.Session.STATUS_PAUSED:
                 informations.append("Status : Paused")
-            elif self.sessions.status == session.Session.STATUS_ERROR:
+            elif self.sessions.current.status == session.Session.STATUS_ERROR:
                 informations.append("Status : Error")
-            informations.append("History : " + str(len(self.sessions.history)))
-            if self.sessions.status == session.Session.STATUS_ERROR:
-                informations.append("Error : " + self.sessions.last_error)
+            informations.append("History : " + str(len(self.sessions.current.history)))
+            if self.sessions.current.status == session.Session.STATUS_ERROR:
+                informations.append("Error : " + self.sessions.current.last_error)
         self.scr.addstr(self.max_y-1, 0, ", ".join(informations).ljust(self.max_x - 1)[:self.max_x-1], curses.A_BOLD | curses.A_REVERSE)
 
     def display_tops(self):
@@ -219,17 +219,17 @@ class CursesUi(object):
             cnt = 6
             max_process = self.max_y - 6
 
-        if self.sessions.current == None:
+        if self.sessions.current is None:
             self.scr.hline(cnt-1, 0, " ", self.max_x, curses.A_BOLD | curses.A_REVERSE)
             return
 
-        column = [None] * len(config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["process"].keys())
-        titles = [None] * len(config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["process"].keys())
-        for key in config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["process"].keys():
-            position = config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["process"][key]["position"]
-            length = config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["process"][key]["length"]
-            alignment = config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["process"][key]["alignment"]
-            titles[position] = (config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["process"][key]["title"])
+        column = [None] * len(config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"].keys())
+        titles = [None] * len(config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"].keys())
+        for key in config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"].keys():
+            position = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["position"]
+            length = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["length"]
+            alignment = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["alignment"]
+            titles[position] = (config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["title"])
             if alignment == "left":
                 column[position] = "{: <" + str(length) + "." + str(length) + "}"
             elif alignment == "right":
@@ -239,15 +239,15 @@ class CursesUi(object):
 
         self.scr.addstr(cnt - 1 , 0, " ".join(column).format(*titles).ljust(self.max_x)[self.cursor_pos_x:self.max_x + self.cursor_pos_x], curses.A_BOLD|curses.A_REVERSE) #Display title bar
         try:
-            sortby = config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["sortby"]
-            tops = sorted(self.sessions.history.last(), key=lambda k: k[sortby], reverse=True)
+            sortby = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["sortby"]
+            tops = sorted(self.sessions.current.history.last(), key=lambda k: k[sortby], reverse=True)
         except KeyError:
-            tops = self.sessions.history.last()
+            tops = self.sessions.current.history.last()
         for i in tops[self.cursor_pos:max_process + self.cursor_pos - 1]:
-            informations = [None] * len(config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["process"].keys())
-            for key in config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["process"].keys():
-                position = config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["process"][key]["position"]
-                length = config.DEFAULT_CONFIG["drivers"][self.sessions.driver.name]["process"][key]["length"]
+            informations = [None] * len(config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"].keys())
+            for key in config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"].keys():
+                position = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["position"]
+                length = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["length"]
                 try:
                     informations[position] = i[key]
                 except KeyError:
@@ -330,8 +330,7 @@ class CursesUi(object):
 
     def quit(self):
         """Stop all sessions and quit"""
-        for sess in self.sessions:
-            sess.stop()
+        self.sessions.stop()
         sys.exit(0)
 
     def refresh(self):
@@ -366,7 +365,7 @@ class CursesUi(object):
             if self.sessions.current is None:
                 delay = None
             else:
-                delay = self.sessions.delay
+                delay = self.sessions.current.delay
             try:
                 select.select([sys.stdin], [], [], delay) #Wait for input
             except select.error:
