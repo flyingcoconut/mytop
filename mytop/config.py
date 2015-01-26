@@ -572,6 +572,7 @@ DEFAULT_CONFIG = {
 
 
 class Config(object):
+    """Manage system and user configurations"""
     def __init__(self):
         """Config class"""
         self.system = DEFAULT_CONFIG

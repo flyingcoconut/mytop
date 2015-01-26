@@ -19,7 +19,7 @@
 """
 MongoDB Driver
 """
-import driver
+from . import driver
 import pymongo
 
 class MongoDBDriver(driver.Driver):

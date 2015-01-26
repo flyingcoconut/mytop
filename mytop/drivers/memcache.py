@@ -20,9 +20,8 @@
 Memcache Driver
 """
 import datetime
-import time
 
-import driver
+from . import driver
 import memcache
 
 

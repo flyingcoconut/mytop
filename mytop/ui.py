@@ -25,6 +25,7 @@ import curses
 import sys
 import os
 import select
+import collections
 
 from mytop import session
 from mytop import config
@@ -40,6 +41,18 @@ class CursesUi(object):
         self.cursor_pos = 0
         self.scr = None
         self.cursor_pos_x = 0
+        self.keymap = {"a": self.add_session,
+                  "e": None,
+                  "F": self.toggle_fullscreen,
+                  "f": self.edit_filter,
+                  "d": self.edit_delay,
+                  "h": self.display_help,
+                  "p": self.pause_session,
+                  "q": self.quit,
+                  "r": self.remove_session,
+                  "w": self.write_to_file,
+                  ":": self.command
+        }
 
     @property
     def max_x(self):
@@ -66,7 +79,7 @@ class CursesUi(object):
     def write_to_file(self):
         """Write process to file in a csv format"""
         path = self.ask("Write to : ")
-        if os.path.exists(path) & os.path.isfile(path):
+        if os.path.isfile(path):
             resp = self.ask('File exist. Do you want to overwrite ? [y/N]')
             if resp != "y":
                 return
@@ -86,10 +99,17 @@ class CursesUi(object):
                 self.error('Bad delay value')
 
     def command(self):
-        """Get manual command"""
-        command = self.ask("command : ")
-        if command == "quit":
-            sys.exit(0)
+        """Command line"""
+        commands = {"quit": self.quit,
+                    "switch": self.switch_session
+                    }
+        response = [x.strip() for x in self.ask("command : ").split(" ")]
+        command = response[0]
+        args = response[1:]
+        try:
+            commands[command](*args)
+        except KeyError:
+            self.error(command + " : not found")
 
     def ask(self, question):
         """Ask question"""
@@ -183,35 +203,28 @@ class CursesUi(object):
 
     def display_footer(self):
         """Display footer informations"""
-        informations = []
-        if self.sessions.current is None:
-            informations.append("Sessions : 0/" + str(len(self.sessions)))
-            informations.append("Driver : None")
-            informations.append("Status : None")
-            informations.append("History : None")
-        else:
+        informations = collections.OrderedDict()
+        informations["Sessions"] = "0/0"
+        informations["Driver"] = "None"
+        informations["Status"] = "None"
+        informations["History"] = "None"
+        status = {session.STATUS_STOPPED: "Stopped",
+                  session.STATUS_INITIALIZING: "Initializing",
+                  session.STATUS_RUNNING: "Running",
+                  session.STATUS_PAUSED: "Paused",
+                  session.STATUS_ERROR: "Error"
+                 }
+        if self.sessions.current is not None:
             index = str(self.sessions.index + 1)
-            informations.append("Sessions : " + index + "/"
-                                + str(len(self.sessions)))
-            informations.append("Driver : " +
-                                self.sessions.current.driver.name)
-            if self.sessions.current.status == session.STATUS_STOPPED:
-                informations.append("Status : Stopped")
-            elif self.sessions.current.status ==  session.STATUS_INITIALIZING:
-                informations.append("Status : Initializing")
-            elif self.sessions.current.status == session.STATUS_RUNNING:
-                informations.append("Status : Running")
-            elif self.sessions.current.status == session.STATUS_PAUSED:
-                informations.append("Status : Paused")
-            elif self.sessions.current.status == session.STATUS_ERROR:
-                informations.append("Status : Error")
-            informations.append("History : " +
-                                str(len(self.sessions.current.history)))
+            informations["Sessions"] = index + "/" + str(len(self.sessions))
+            informations["Driver"] = self.sessions.current.driver.name
+            informations["Status"] = status[self.sessions.current.status]
+            informations["History"] = str(len(self.sessions.current.history))
             if self.sessions.current.status == session.STATUS_ERROR:
-                informations.append("Error : " +
-                                    self.sessions.current.last_error)
+                informations["Error"] = self.sessions.current.last_error
         self.scr.addstr(self.max_y-1, 0,
-                        ", ".join(informations).ljust(self.max_x - 1)[:self.max_x-1],
+                        ", ".join("{!s} : {!s}".format(key,val)
+                        for (key,val) in informations.items()).ljust(self.max_x - 1)[:self.max_x-1],
                         curses.A_BOLD | curses.A_REVERSE)
 
     def display_tops(self):
@@ -272,68 +285,51 @@ class CursesUi(object):
 
     def switch_session(self, index):
         try:
-            self.sessions.switch(index - 1)
+            self.sessions.switch(int(index) - 1)
         except session.SessionsManagerError:
-            self.error("Session %d does not exist" % index)
+            self.error("Session %d does not exist" % int(index))
+
+    def pause_session(self):
+        """Pause and Unpause session"""
+        if self.sessions.current is None:
+            self.error("No current session")
+        else:
+            self.sessions.current.pause()
+
+    def toggle_fullscreen(self):
+        if self.fullscreen:
+            self.fullscreen = False
+        else:
+            self.fullscreen = True
 
     def handle_key(self):
         """Handle key input"""
         key = self.scr.getch()
-        if key == ord("a"):
-            self.add_session()
-        elif key == ord(":"):
-            self.command()
-        elif key == ord("F"):
-            if self.fullscreen:
-                self.fullscreen = False
-            else:
-                self.fullscreen = True
-        elif key in [ord("1"), ord("2"), ord("3"), ord("4"), ord("5"),
-                     ord("6"), ord("7"), ord("8"), ord("9")]:
+        try:
+            key = chr(key) #try to convert to ascii
+        except ValueError:
+            pass
+        try:
+            self.keymap[key]()
+        except KeyError:
+            pass
+        if key in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
             #All keyboard key number are used to select wich connection to display
-            index = int(chr(key))
+            index = int(key)
             self.switch_session(index)
-        elif key == ord("q"):
-            #Key to exit mytop
-            self.quit()
-        elif key == ord("h"):
-            self.display_help()
         elif key == curses.KEY_LEFT:
             if self.cursor_pos_x > 0:
                 self.cursor_pos_x -= 5
         elif key == curses.KEY_RIGHT:
             self.cursor_pos_x += 5
-        elif key == ord("d"):
-            #Key to change delay
-            self.edit_delay()
-        elif key == ord("e"):
-            #Key to edit the current connection
-            pass
-        elif key == ord("f"):
-            #key to edit or add filter
-            self.edit_filter()
-        elif key == ord("w"):
-            #Key to write results to a file
-            self.write_to_file()
         elif key == curses.KEY_DOWN:
             self.cursor_pos = self.cursor_pos + 1
         elif key == curses.KEY_UP:
             if self.cursor_pos > 0:
                 self.cursor_pos = self.cursor_pos - 1
-        elif key == ord("p"):
-            #Key to pause a session
-            if self.sessions.current is None:
-                self.error("No current session")
-            else:
-                self.sessions.current.pause()
-        elif key == ord("r"):
-            #Remove a session
-            self.remove_session()
-        else:
-            pass
 
     def start(self):
-        """Wrappe function if bug happen, then reset terminal properly"""
+        """Wrap function if bug happen, then reset terminal properly"""
         curses.wrapper(self.start_ui)
 
     def quit(self):

@@ -19,7 +19,7 @@
 """Redis Driver"""
 import datetime
 
-import driver
+from . import driver
 import redis
 
 class RedisDriver(driver.Driver):

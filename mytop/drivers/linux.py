@@ -99,22 +99,23 @@ class LinuxDiskDriver(driver.Driver):
         iostats = psutil.disk_io_counters(True)
         partitions = self._get_partitions()
         for disk in iostats:
-            d = dict(iostats[disk]._asdict())
+            new_disk = dict(iostats[disk]._asdict())
             try:
-                d.update(partitions["/dev/" + disk])
+                new_disk.update(partitions["/dev/" + disk])
             except KeyError:
-                d["mountpoint"] = "-"
-                d["fstype"] = "-"
-                d["opts"] = "-"
-            d["device"] = disk
-            all_disks.append(d)
+                new_disk["mountpoint"] = "-"
+                new_disk["fstype"] = "-"
+                new_disk["opts"] = "-"
+            new_disk["device"] = disk
+            all_disks.append(new_disk)
         return all_disks
 
     def _get_partitions(self):
+        """Get partitions informations"""
         partitions = {}
         for partition in psutil.disk_partitions(False):
             informations = dict(partition._asdict())
-            del(informations["device"])
+            del informations["device"]
             partitions[partition.device] = informations
         return partitions
 
@@ -144,9 +145,9 @@ class LinuxNetworkDriver(driver.Driver):
         all_nics = []
         network = psutil.network_io_counters(pernic=True)
         for nic in network:
-            n = dict(network[nic]._asdict()) #Convert namedtuple into dict
-            n["interface"] = nic
-            all_nics.append(n)
+            new_nic = dict(network[nic]._asdict()) #Convert namedtuple into dict
+            new_nic["interface"] = nic
+            all_nics.append(new_nic)
         return all_nics
 
     def info(self):
@@ -189,6 +190,7 @@ class LinuxSocketDriver(driver.Driver):
         return all_sockets
 
     def _get_family(self, family):
+        """Return family string"""
         families = {
             1 : "AF_UNIX",
             2 : "AF_INET",
@@ -200,6 +202,7 @@ class LinuxSocketDriver(driver.Driver):
             return family
 
     def _get_type(self, stype):
+        """Get socket type string"""
         stypes = {
             1 : "STREAM",
             2 : "DGRAM"

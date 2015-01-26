@@ -16,19 +16,23 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+PostgreSQL driver
+"""
 
-import driver
+from . import driver
 
-class pgSQLDriver(driver.Driver):
+class PgsqlDriver(driver.Driver):
     """
     A class to manipulate and get sql server process
     """
-    def __init__(self, user="root", host="localhost", password=None, port=3306):
-        pass
+    def __init__(self):
+        driver.Driver.__init__(self)
+        self.name = "pgsql"
 
     def tops(self):
         """
-        Refresh sql information. Including uptime and the list of running process
+        Refresh sql information.
         """
         all_process = []
         try:
