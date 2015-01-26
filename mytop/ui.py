@@ -101,7 +101,10 @@ class CursesUi(object):
     def command(self):
         """Command line"""
         commands = {"quit": self.quit,
-                    "switch": self.switch_session
+                    "help": self.display_help,
+                    "switch": self.switch_session,
+                    "add": self.add_session,
+                    "remove": self.remove_session
                     }
         response = [x.strip() for x in self.ask("command : ").split(" ")]
         command = response[0]
