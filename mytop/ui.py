@@ -280,7 +280,14 @@ class CursesUi(object):
             cnt += 1
 
     def remove_session(self):
-        """Stop and remove current session"""
+        """Remove current session"""
+        try:
+            self.sessions.remove()
+        except session.SessionsManagerError as error:
+            self.error(str(error))
+
+    def remove_current_session(self):
+        """Remove current session"""
         try:
             self.sessions.remove()
         except session.SessionsManagerError as error:
