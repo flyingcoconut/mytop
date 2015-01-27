@@ -44,10 +44,10 @@ class CursesUi(object):
         self.keymap = {"a": self.add_session,
                   "e": None,
                   "F": self.toggle_fullscreen,
-                  "f": self.edit_filter,
+                  "f": self.add_filter,
                   "d": self.edit_delay,
                   "h": self.display_help,
-                  "p": self.pause_session,
+                  "p": self.toggle_pause,
                   "q": self.quit,
                   "r": self.remove_current_session,
                   "w": self.write_to_file,
@@ -104,7 +104,8 @@ class CursesUi(object):
                     "help": self.display_help,
                     "switch": self.switch_session,
                     "add": self.add_session,
-                    "remove": self.remove_session
+                    "remove": self.remove_session,
+                    "delay": self.edit_delay
                     }
         response = [x.strip() for x in self.ask("command : ").split(" ")]
         command = response[0]
@@ -135,7 +136,8 @@ class CursesUi(object):
             ques_pos = self.max_y - 1
         else:
             ques_pos = 4
-        curses.echo()
+        curses.noecho()
+        curses.curs_set(0)
         self.scr.move(ques_pos, 0)
         self.scr.clrtoeol()
         self.scr.addstr(ques_pos, 0, error.ljust(self.max_x)[:self.max_x])
@@ -156,9 +158,8 @@ class CursesUi(object):
             for conf in driver.config.configs:
                 value = self.ask(conf.name + " : ")
                 configs[conf.name] = value
-            index = self.sessions.add(driver, configs)
+            index = self.sessions.new(driver, configs)
             self.sessions.switch(index)
-
 
     def display_help(self):
         """Display help"""
@@ -199,6 +200,12 @@ class CursesUi(object):
     def edit_filter(self):
         """Edit filter"""
         pass
+
+    def add_filter(self):
+        """Add a filter"""
+        column = self.ask("column : ")
+        regexp = self.ask("filter : ")
+        self.sessions.current.filters[column] = regexp
 
     def display_header(self):
         """Display header info"""
@@ -280,19 +287,20 @@ class CursesUi(object):
             cnt += 1
 
     def remove_session(self, index):
-        """Remove current session"""
+        """Remove a session"""
         try:
-            self.sessions.remove(int(index) - 1)
-        except session.SessionsManagerError as error:
-            self.error(str(error))
-        
+            del self.sessions[int(index) - 1]
+        except IndexError:
+            self.error("Session %d does not exist" % int(index))
+        except ValueError:
+            self.error("Session %s is not a valid session number" % index)
 
     def remove_current_session(self):
         """Remove current session"""
-        try:
-            self.sessions.remove()
-        except session.SessionsManagerError as error:
-            self.error(str(error))
+        if self.sessions.current is None:
+            self.error("No current session")
+        else:
+            del self.sessions[self.sessions.index]
 
     def switch_session(self, index):
         try:
@@ -300,7 +308,7 @@ class CursesUi(object):
         except session.SessionsManagerError:
             self.error("Session %d does not exist" % int(index))
 
-    def pause_session(self):
+    def toggle_pause(self):
         """Pause and Unpause session"""
         if self.sessions.current is None:
             self.error("No current session")

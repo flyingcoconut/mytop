@@ -73,11 +73,11 @@ class Session(threading.Thread):
         self.daemon = True
         self.driver = driver
         self.config = config
-        self.filters = []
         self.history = History(history)
         self.delay = 3
         self.status = STATUS_STOPPED
         self.last_error = None
+        self.filters = {}
 
     def run(self):
         """Start the session"""
@@ -133,33 +133,12 @@ class SessionsManager(object):
         self.sessions = []
         self.current = None
 
-    def add(self, driver, configs):
+    def new(self, driver, configs):
         """Add a new session"""
         new_session = Session(driver, configs)
         new_session.start()
         self.sessions.append(new_session)
         return self.sessions.index(new_session)
-
-    def remove(self, index=None):
-        """Remove session"""
-        if index is None:
-            try:
-                index = self.sessions.index(self.current)
-            except ValueError:
-                raise SessionsManagerError("No current session")
-        try:
-            self.sessions[index].stop()
-            del self.sessions[index]
-        except IndexError:
-            raise SessionsManagerError("Session %d does not exist" % index)
-        else:
-            if index > len(self.sessions) - 1:
-                try:
-                    self.current = self.sessions[-1]
-                except IndexError:
-                    self.current = None
-            else:
-                self.current = self.sessions[index - 1]
 
     def switch(self, index):
         """Switch current session"""
@@ -189,3 +168,18 @@ class SessionsManager(object):
     def __len__(self):
         """Return the number of sessions"""
         return len(self.sessions)
+
+    def __getitem__(self, key):
+        """Remove a session"""
+        return self.sessions[key]
+
+    def __delitem__(self, key):
+        """Remove a session"""
+        del self.sessions[key]
+        if key > len(self.sessions) - 1:
+            try:
+                self.current = self.sessions[-1]
+            except IndexError:
+                self.current = None
+        else:
+            self.current = self.sessions[key - 1]
