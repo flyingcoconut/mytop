@@ -49,7 +49,7 @@ class CursesUi(object):
                   "h": self.display_help,
                   "p": self.pause_session,
                   "q": self.quit,
-                  "r": self.remove_session,
+                  "r": self.remove_current_session,
                   "w": self.write_to_file,
                   ":": self.command
         }
@@ -279,12 +279,13 @@ class CursesUi(object):
             self.scr.addstr(cnt, 0, " ".join(column).format(*informations)[self.cursor_pos_x:self.max_x + self.cursor_pos_x])
             cnt += 1
 
-    def remove_session(self):
+    def remove_session(self, index):
         """Remove current session"""
         try:
-            self.sessions.remove()
+            self.sessions.remove(int(index) - 1)
         except session.SessionsManagerError as error:
             self.error(str(error))
+        
 
     def remove_current_session(self):
         """Remove current session"""

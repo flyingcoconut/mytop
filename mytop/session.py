@@ -140,14 +140,19 @@ class SessionsManager(object):
         self.sessions.append(new_session)
         return self.sessions.index(new_session)
 
-    def remove(self, index):
-        """Remove the current session"""
-        if self.current is None:
-            raise SessionsManagerError("Session does not exist")
+    def remove(self, index=None):
+        """Remove session"""
+        if index is None:
+            try:
+                index = self.sessions.index(self.current)
+            except ValueError:
+                raise SessionsManagerError("No current session")
+        try:
+            self.sessions[index].stop()
+            del self.sessions[index]
+        except IndexError:
+            raise SessionsManagerError("Session %d does not exist" % index)
         else:
-            self.current.stop()
-            index = self.sessions.index(self.current)
-            self.sessions.remove(self.current)
             if index > len(self.sessions) - 1:
                 try:
                     self.current = self.sessions[-1]
