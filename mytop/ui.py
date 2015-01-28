@@ -34,42 +34,66 @@ from mytop import drivers
 
 class Grid(object):
     """Curses Grid Class"""
-    def __init__(self):
+    def __init__(self, win):
+        self.win = win
         self.columns = []
-        self.data = None
         self.position = [0, 0]
 
     def insert(self, column, position):
         """Insert a new column"""
-        pass
+        self.columns.insert(position, column)
 
     def append(self, column):
         """Append a new column"""
-        pass
+        self.columns.append(column)
 
     def move_right(self):
         """Move one position to the right"""
-        pass
+        if self.position[0] < len(self.columns) - 1:
+            self.position[0] += 1
 
     def move_left(self):
         """Move one position to the left"""
-        pass
+        if self.position[0] > 0:
+            self.position[0] -= 1
 
     def move_up(self):
         """Move one position up"""
-        pass
+        if self.position[1] > 0:
+            self.position[1] -= 1
 
     def move_down(self):
         """Move one position down"""
-        pass
+        if self.position[1] < len(self.columns[self.position[0]]) - 1:
+            self.position[1] += 1
 
     def move(self, x, y):
         """Move position"""
         pass
 
+    def column(self):
+        """Return column name"""
+        return self.columns[self.position[0]][0]
+
     def value(self):
         """Return current selected value"""
-        pass
+        return self.columns[self.position[0]][self.position[1] + 1]
+
+    def render(self):
+        """Display grid to screen"""
+        next_column_position = 0
+        for column in self.columns:
+            pos_y = 0
+            length = len(max(column, key=len))
+            formating = "{: <" + str(length) + "." + str(length) + "}"
+            title = formating.format(column[0])
+            self.win.addstr(0 , next_column_position, title, curses.A_BOLD|curses.A_REVERSE) #Display title bar
+            pos_y = 1
+            for item in column[1:]:
+                self.win.addstr(pos_y , next_column_position, item, curses.A_BOLD)
+                pos_y += 1
+            next_column_position = next_column_position + length + 1
+        self.win.refresh()
 
 class CursesUi(object):
     """The ui class"""
@@ -80,6 +104,7 @@ class CursesUi(object):
         self.cursor_pos = 0
         self.scr = None
         self.cursor_pos_x = 0
+        self.grid = None
         self.keymap = {"a": self.add_session,
                   "e": None,
                   "F": self.toggle_fullscreen,
@@ -90,7 +115,8 @@ class CursesUi(object):
                   "q": self.quit,
                   "r": self.remove_current_session,
                   "w": self.write_to_file,
-                  ":": self.command
+                  ":": self.command,
+                  curses.KEY_RESIZE: self.resize
         }
 
     @property
@@ -410,6 +436,11 @@ class CursesUi(object):
             self.display_tops()
             self.display_footer()
         self.scr.refresh()
+        #self.grid.render()
+
+    def resize(self):
+        """Resize all sub windows"""
+        pass
 
     def start_color(self):
         try:
@@ -421,6 +452,12 @@ class CursesUi(object):
     def start_ui(self, scr):
         """The main function loop"""
         self.scr = scr #Set screen
+        #win = curses.newwin(self.max_y - 6, self.max_x, 5, 0)
+        #self.grid = Grid(win)
+        #a = ["Sort by", "CPU", "%USER", "%NICE"]
+        #b = ["Filter by", "MEM", "PID"]
+        #self.grid.append(a)
+        #self.grid.append(b)
         self.start_color()
         self.refresh()
         while 1:
