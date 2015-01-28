@@ -32,6 +32,45 @@ from mytop import config
 from mytop import drivers
 
 
+class Grid(object):
+    """Curses Grid Class"""
+    def __init__(self):
+        self.columns = []
+        self.data = None
+        self.position = [0, 0]
+
+    def insert(self, column, position):
+        """Insert a new column"""
+        pass
+
+    def append(self, column):
+        """Append a new column"""
+        pass
+
+    def move_right(self):
+        """Move one position to the right"""
+        pass
+
+    def move_left(self):
+        """Move one position to the left"""
+        pass
+
+    def move_up(self):
+        """Move one position up"""
+        pass
+
+    def move_down(self):
+        """Move one position down"""
+        pass
+
+    def move(self, x, y):
+        """Move position"""
+        pass
+
+    def value(self):
+        """Return current selected value"""
+        pass
+
 class CursesUi(object):
     """The ui class"""
     def __init__(self):
