@@ -39,9 +39,22 @@ class Grid(object):
         self.columns = []
         self.position = [0, 0]
 
-    def insert(self, column, position):
+    @property
+    def max_x(self):
+        """Get maximum x position"""
+        return self.win.getmaxyx()[1]
+
+    @property
+    def max_y(self):
+        """Get maximum y position"""
+        return self.win.getmaxyx()[0]
+
+    def insert(self, position, column):
         """Insert a new column"""
         self.columns.insert(position, column)
+
+    def update(self, position, data):
+        self.columns[position] = data
 
     def append(self, column):
         """Append a new column"""
@@ -79,6 +92,9 @@ class Grid(object):
         """Return current selected value"""
         return self.columns[self.position[0]][self.position[1] + 1]
 
+    def resize(self, y, x):
+        pass
+
     def render(self):
         """Display grid to screen"""
         next_column_position = 0
@@ -86,14 +102,13 @@ class Grid(object):
             pos_y = 0
             length = len(max(column, key=len))
             formating = "{: <" + str(length) + "." + str(length) + "}"
-            title = formating.format(column[0])
+            title = formating.format(column[0]).ljust(self.max_x)[:self.max_x]
             self.win.addstr(0 , next_column_position, title, curses.A_BOLD|curses.A_REVERSE) #Display title bar
             pos_y = 1
-            for item in column[1:]:
-                self.win.addstr(pos_y , next_column_position, item, curses.A_BOLD)
+            for item in column[1:self.max_y]:
+                self.win.addstr(pos_y , next_column_position, item[:self.max_x], curses.A_BOLD)
                 pos_y += 1
             next_column_position = next_column_position + length + 1
-        self.win.refresh()
 
 class CursesUi(object):
     """The ui class"""
@@ -302,6 +317,46 @@ class CursesUi(object):
                         for (key,val) in informations.items()).ljust(self.max_x - 1)[:self.max_x-1],
                         curses.A_BOLD | curses.A_REVERSE)
 
+    def _display_tops(self):
+        """Display tops to screen"""
+        if self.sessions.current is None:
+            return []
+
+        data = []
+        column = [None] * len(config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"].keys())
+        titles = [None] * len(config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"].keys())
+        for key in config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"].keys():
+            position = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["position"]
+            length = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["length"]
+            alignment = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["alignment"]
+            titles[position] = (config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["title"])
+            if alignment == "left":
+                column[position] = "{: <" + str(length) + "." + str(length) + "}"
+            elif alignment == "right":
+                column[position] = "{: >" + str(length) + "." + str(length) + "}"
+            elif alignment == "center":
+                column[position] = "{: ^" + str(length) + "." + str(length) + "}"
+
+        data.append(" ".join(column).format(*titles))
+        try:
+            sortby = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["sortby"]
+            tops = sorted(self.sessions.current.history.last(),
+                          key=lambda k: k[sortby], reverse=True)
+        except KeyError:
+            tops = self.sessions.current.history.last()
+        for i in tops:
+            informations = [None] * len(config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"].keys())
+            for key in config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"].keys():
+                position = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["position"]
+                length = config.DEFAULT_CONFIG["drivers"][self.sessions.current.driver.name]["process"][key]["length"]
+                try:
+                    informations[position] = i[key]
+                except KeyError:
+                    informations[position] = ""
+            informations = map(str, informations)
+            data.append(" ".join(column).format(*informations)[self.cursor_pos_x:self.max_x + self.cursor_pos_x])
+        return data
+
     def display_tops(self):
         """Display tops to screen"""
         #{k:v for (k,v) in d.items() if filter_string in k} filtering
@@ -423,20 +478,29 @@ class CursesUi(object):
 
     def refresh(self):
         """Refresh screen and all elements"""
+        self.scr.touchwin()
         self.scr.erase()
+        self.grid.win.erase()
         self.scr.nodelay(1)
         self.scr.keypad(1)
         curses.curs_set(0)
         curses.noecho()
         if self.fullscreen:
-            self.display_tops()
+            #self.display_tops()
             self.display_footer()
         else:
             self.display_header()
-            self.display_tops()
+            #self.display_tops()
             self.display_footer()
         self.scr.refresh()
-        #self.grid.render()
+        data = self._display_tops()
+        if data != []:
+            try:
+                self.grid.update(0, data)
+            except IndexError:
+                self.grid.append(data)
+            self.grid.render()
+        self.grid.win.refresh()
 
     def resize(self):
         """Resize all sub windows"""
@@ -452,12 +516,8 @@ class CursesUi(object):
     def start_ui(self, scr):
         """The main function loop"""
         self.scr = scr #Set screen
-        #win = curses.newwin(self.max_y - 6, self.max_x, 5, 0)
-        #self.grid = Grid(win)
-        #a = ["Sort by", "CPU", "%USER", "%NICE"]
-        #b = ["Filter by", "MEM", "PID"]
-        #self.grid.append(a)
-        #self.grid.append(b)
+        win = curses.newwin(self.max_y - 6, self.max_x, 5, 0)
+        self.grid = Grid(win)
         self.start_color()
         self.refresh()
         while 1:
