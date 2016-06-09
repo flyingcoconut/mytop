@@ -1,0 +1,88 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Author : Patrick Charron
+# Email : patrick.charron.pc@gmail.com
+# Description : Top Informations Viewer
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""MySQL Driver"""
+import datetime
+
+from mytop import driver
+from mytop import collector
+from mytop import metrics
+
+import MySQLdb
+
+name = "MySQL"
+description = "Mysql process driver"
+version = "0.0.1"
+author = "Patrick Charron <patrick.charron.pc@gmail.com>"
+
+class MysqlCollector(collector.Collector):
+    def __init__(self):
+        collector.Collector.__init__(self)
+        self._mysql = None
+
+    #def collect(self):
+    #    """Refresh sql list of running process"""
+    #    self._mysql.execute('SHOW FULL PROCESSLIST;')
+    #    all_process = []
+    #    for row in self._mysql.fetchall():
+    #        process = {}
+    #        process["pid"] = row[0]
+    #        process["user"] = row[1]
+    #        process["state"] = row[4]
+    #        process["time"] = row[5]
+    #        all_process.append(process)
+    #    return all_process
+
+    def collect(self):
+        self._mysql.execute('SELECT VERSION();')
+        data = self._mysql.fetchall()
+        self.metrics["version"].update(data)
+        self._mysql.execute('SHOW VARIABLES WHERE Variable_name="max_connections";')
+        data = self._mysql.fetchall()
+        return self.metrics["version"].to_dict()
+
+    def initialize(self):
+        """Initialize mysql connection"""
+        db = MySQLdb.connect(host="10.13.10.1", user="root", passwd="71laWrence72", port=3306)
+        self._mysql = db.cursor()
+        version = metrics.Label("version")
+        connections = metrics.Gauge("connections", 0, 0, 0)
+        self.add_metric(version)
+        self.add_metric(connections)
+
+    def terminate(self):
+        self._mysql.close()
+
+def main():
+    c = MysqlCollector()
+    d = driver.Driver(
+       name=name,
+       description=description,
+       version=version,
+       author=author,
+       collector=c
+    )
+    d.add_config("hostname", "string", default=None, choices=[], required=True)
+    d.add_config("port", "integer", default=3306, choices=[], required=False)
+    d.add_config("username", "string", default="root", choices=[], required=False)
+    d.add_config("password", "string", default=None, choices=[], required=True)
+    d.start()
+
+if __name__ == "__main__":
+    main()
+

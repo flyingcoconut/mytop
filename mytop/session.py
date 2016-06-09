@@ -1,185 +1,100 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Author : Patrick Charron
-# Email : patrick.charron.pc@gmail.com
-# Description : Top Informations Viewer
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-Session Module
-"""
+import selectors
+import sys
+import os
+import subprocess
+import sched
+import json
 
-import time
-import zlib
-import pickle
-import threading
-import logging
+class Session(object):
+    def __init__(self, driver_path):
+        self._driver_path = driver_path
+        self._process = None
+        self.interval = 5
+        self.state = None
+        self.version = None
+        self.author = None
+        self.name = None
 
-STATUS_STOPPED = 0
-STATUS_INITIALIZING = 1
-STATUS_RUNNING = 2
-STATUS_PAUSED = 3
-STATUS_ERROR = 4
+    def get_configurations(self):
+        """Get all possible configuration"""
+        self._send_rpc_call("getconfigs")
+        self._recv_rpc_resp()
 
-class SessionError(Exception):
-    """Session error class"""
-    pass
+    def update_configurations(self):
+        """Update driver configuration"""
+        self._send_rpc_call("setconfigs")
 
-class SessionsManagerError(Exception):
-    """SessionsManager error class"""
-    pass
+    def collect(self):
+        """Collect all metrics"""
+        self._send_rpc_call("collect")
 
-class History(object):
-    def __init__(self, lenght=0):
-        self.lenght = lenght
-        self._items = []
-        self._timeline = {}
+    def list_metrics(self):
+        """List possible metrics"""
+        self._send_rpc_call("listmetrics")
 
-    def add(self, items):
-        """Add a frame"""
-        compressed = zlib.compress(pickle.dumps(items))
-        self._items.append(compressed)
+    def enable_metric(self, metric):
+        """Enable a specific metric"""
+        self._send_rpc_call("enablemetric", metric)
 
-    def last(self):
-        """Return last frame"""
-        try:
-            items = pickle.loads(zlib.decompress(self._items[-1]))
-        except IndexError:
-            items = []
-        return items
+    def disable_metric(self, metric):
+        """Disable a specific metric"""
+        self._send_rpc_call("disablemetric", metric)
+        self._recv_rpc_resp()
 
-    def first(self):
-        """Return first frame"""
+    def list_actions():
         pass
 
-    def __len__(self):
-        return len(self._items)
+    def initialize():
+        """Initialize driver after configuration"""
+        self._send_rpc_call("init")
 
-class Session(threading.Thread):
-    def __init__(self, driver, config, history=10):
-        threading.Thread.__init__(self)
-        self.logger = logging.getLogger(__name__)
-        self.daemon = True
-        self.driver = driver
-        self.config = config
-        self.history = History(history)
-        self.delay = 3
-        self.status = STATUS_STOPPED
-        self.last_error = None
-        self.filters = {}
+    def load(self):
+        """Start driver subprocess"""
+        self._process = subprocess.Popen([self._driver_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        informations = self._process.stdout.read(1024)
+        print(informations)
 
-    def run(self):
-        """Start the session"""
-        self.logger.debug("Starting the session")
-        self.status = STATUS_INITIALIZING
-        try:
-            self.driver.configure(self.config)
-            self.driver.initialize()
-        except Exception as error:
-            self.status = STATUS_ERROR
-            self.last_error = str(error)
-        self.status = STATUS_RUNNING
-        while (self.status == STATUS_RUNNING):
-            try:
-                self.history.add(self.driver.tops())
-            except Exception as error:
-                self.status = STATUS_ERROR
-                self.last_error = str(error)
-            time.sleep(self.delay)
+    def terminate():
+        """Ask driver to terminate politely"""
+        self._send_rpc_call("term")
+        self._recv_rpc_call()
+        self._process.terminate()
 
-    def stop(self):
-        """Stop the session"""
-        self.status = STATUS_STOPPED
-        self.driver.terminate()
-
-    def pause(self):
-        """Pause the session"""
-        self.status = STATUS_PAUSED
-
-    def record(self):
-        """Record a session"""
+    def _recv_informations(self):
+        """Receive driver initial informations"""
         pass
 
-    def tops(self):
-        """Get tops items"""
-        items = self.driver.tops()
-        #self.history.add(items)
-        return items
+    def _send_rpc_call(self, method, params={}, timeout=10):
+        msg = {
+          "method": method,
+          "params": params
+        }
+        print(json.dumps(msg))
 
-    def fields(self):
-        """Return all disponible fields"""
-        return self.driver.fields()
+    def _recv_rpc_resp(self, timeout):
+        print("Receiving")
+    
 
-    def info(self):
-        """Return all infos"""
-        return self.driver.info()
-
-
-class SessionsManager(object):
-    """Manage sessions"""
+class SessionManager(object):
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
-        self.sessions = []
-        self.current = None
+        self._sessions = []
+        self._selector = selectors.DefaultSelector()
+        self._sched = sched.scheduler(time.time, time.sleep)
 
-    def new(self, driver, configs):
-        """Add a new session"""
-        new_session = Session(driver, configs)
-        new_session.start()
-        self.sessions.append(new_session)
-        return self.sessions.index(new_session)
+    def new_session(self, driver_path):
+        session = Session(driver_path)
+        self._sessions.append(session)
 
-    def switch(self, index):
-        """Switch current session"""
-        try:
-            self.current = self.sessions[index]
-        except IndexError:
-            raise SessionsManagerError("Session %d does not exist" % index)
+    def list_sessions(self):
+        return self._sessions
 
-    def stop(self):
-        """Stop all sessions"""
-        for session in self.sessions:
-            session.stop()
+    def list_drivers(self):
+        pass
 
-    @property
-    def index(self):
-        """Return current session index"""
-        if self.current is None:
-            return None
-        else:
-            return self.sessions.index(self.current)
+    def start_collection(self):
+        pass
 
-    def __iter__(self):
-        """Iterate sessions"""
-        for session in self.sessions:
-            yield session
-
-    def __len__(self):
-        """Return the number of sessions"""
-        return len(self.sessions)
-
-    def __getitem__(self, key):
-        """Remove a session"""
-        return self.sessions[key]
-
-    def __delitem__(self, key):
-        """Remove a session"""
-        del self.sessions[key]
-        if key > len(self.sessions) - 1:
-            try:
-                self.current = self.sessions[-1]
-            except IndexError:
-                self.current = None
-        else:
-            self.current = self.sessions[key - 1]
+    def _read(self, conn, mask):
+        """Read data from stdin fd"""
+        data = os.read(sys.stdin.fileno(), 1)
+        print(data)
